@@ -46,5 +46,6 @@ struct ProviderRow: View {
         }
         .padding(.vertical, 4)
         .accessibilityElement(children: .combine)
+        .accessibilityAction(named: isFavorite ? "Remove from favorites" : "Add to favorites", onToggleFavorite)
     }
 }

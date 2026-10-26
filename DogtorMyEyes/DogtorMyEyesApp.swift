@@ -26,6 +26,7 @@ struct ContentView: View {
                 }
         }
         .tint(Theme.teal)
+        .preferredColorScheme(.light)
     }
 }
 
