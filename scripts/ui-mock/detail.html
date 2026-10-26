@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=390, initial-scale=1" />
+<title>Dogtor My Eyes — Detail</title>
+<style>
+  :root {
+    --teal: #2e737a;
+    --deep: #1a474f;
+    --sand: #f5f0e6;
+    --ink: #24292e;
+    --muted: #6b7278;
+    --card: #ffffff;
+    --success: #338c61;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Rounded", "Segoe UI", sans-serif;
+    background: #111;
+    display: flex;
+    justify-content: center;
+    padding: 24px;
+  }
+  .phone {
+    width: 390px;
+    min-height: 844px;
+    background: var(--sand);
+    border-radius: 40px;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0,0,0,.45);
+    border: 10px solid #1c1c1e;
+  }
+  .top {
+    height: 54px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding: 0 18px 10px;
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .back { color: var(--teal); }
+  .heart { color: #e25555; }
+  .hero {
+    margin: 8px 16px 16px;
+    background: var(--card);
+    border-radius: 20px;
+    padding: 24px 16px;
+    text-align: center;
+  }
+  .avatar {
+    width: 96px; height: 96px; border-radius: 50%;
+    margin: 0 auto 14px;
+    background: linear-gradient(145deg, #C4A35A, #a8843d);
+    display: grid; place-items: center;
+    color: white; font-size: 42px;
+  }
+  h1 { margin: 0; font-size: 22px; color: var(--ink); }
+  .sub { color: var(--muted); margin-top: 6px; font-size: 15px; }
+  .stats { color: var(--muted); font-size: 12px; margin-top: 10px; }
+  .badge {
+    display: inline-block; margin-top: 12px;
+    font-size: 12px; font-weight: 700; color: var(--success);
+    background: rgba(51,140,97,.14); padding: 5px 12px; border-radius: 999px;
+  }
+  .block { padding: 0 20px 18px; }
+  .block h2 { margin: 0 0 8px; font-size: 17px; color: var(--ink); }
+  .block p, .block li { margin: 0; color: var(--muted); font-size: 15px; line-height: 1.45; }
+  .block ul { padding-left: 0; list-style: none; }
+  .block li { margin: 8px 0; color: var(--ink); }
+  .block li::before { content: "✓ "; color: var(--teal); font-weight: 700; }
+  .plans { display: flex; flex-wrap: wrap; gap: 8px; }
+  .plan {
+    background: rgba(46,115,122,.12); color: var(--deep);
+    font-size: 12px; font-weight: 700; padding: 6px 10px; border-radius: 999px;
+  }
+  .cta {
+    margin: 8px 20px 28px;
+    background: var(--teal); color: white;
+    text-align: center; font-weight: 700; font-size: 16px;
+    padding: 16px; border-radius: 14px;
+  }
+</style>
+</head>
+<body>
+  <div class="phone">
+    <div class="top"><span class="back">‹ Browse</span><span>Provider</span><span class="heart">♥</span></div>
+    <div class="hero">
+      <div class="avatar">🐶</div>
+      <h1>Dr. Biscuit Barkley, OD</h1>
+      <div class="sub">Golden Retriever · Optometry</div>
+      <div class="stats">★ 4.9 · 214 reviews · 1.2 mi away</div>
+      <div class="badge">In-network</div>
+    </div>
+    <div class="block">
+      <h2>About</h2>
+      <p>Warm, thorough exams with a gentle paw. Biscuit specializes in everyday vision care and loves helping first-time patients feel at ease.</p>
+    </div>
+    <div class="block">
+      <h2>Services</h2>
+      <ul>
+        <li>Comprehensive eye exam</li>
+        <li>Prescription renewal</li>
+        <li>Dry eye consult</li>
+      </ul>
+    </div>
+    <div class="block">
+      <h2>Accepted plans</h2>
+      <div class="plans">
+        <div class="plan">VSP</div>
+        <div class="plan">EyeMed</div>
+        <div class="plan">Out of Pocket</div>
+      </div>
+    </div>
+    <div class="block">
+      <h2>Next available</h2>
+      <ul>
+        <li>Oct 27, 2026, 2:00 PM</li>
+        <li>Oct 28, 2026, 9:30 AM</li>
+        <li>Oct 29, 2026, 4:00 PM</li>
+      </ul>
+    </div>
+    <div class="cta">📅 Request appointment</div>
+  </div>
+</body>
+</html>

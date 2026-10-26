@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=390, initial-scale=1" />
+<title>Dogtor My Eyes — Browse</title>
+<style>
+  :root {
+    --teal: #2e737a;
+    --deep: #1a474f;
+    --sand: #f5f0e6;
+    --ink: #24292e;
+    --muted: #6b7278;
+    --card: #ffffff;
+    --success: #338c61;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Rounded", "Segoe UI", sans-serif;
+    background: #111;
+    display: flex;
+    justify-content: center;
+    padding: 24px;
+  }
+  .phone {
+    width: 390px;
+    min-height: 844px;
+    background: var(--sand);
+    border-radius: 40px;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0,0,0,.45);
+    position: relative;
+    border: 10px solid #1c1c1e;
+  }
+  .notch {
+    height: 54px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding-bottom: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--ink);
+    background: var(--sand);
+  }
+  .nav {
+    padding: 8px 20px 12px;
+  }
+  .nav h1 {
+    margin: 0;
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: var(--ink);
+  }
+  .search {
+    margin: 8px 16px 12px;
+    background: #e8e4db;
+    border-radius: 12px;
+    padding: 10px 14px;
+    color: var(--muted);
+    font-size: 15px;
+  }
+  .section {
+    margin: 0 16px 14px;
+    background: var(--card);
+    border-radius: 16px;
+    padding: 14px;
+  }
+  .label {
+    font-size: 12px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    margin-bottom: 8px;
+  }
+  .row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 15px;
+    color: var(--ink);
+    margin-bottom: 10px;
+  }
+  .row:last-child { margin-bottom: 0; }
+  .seg {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    background: #ece8df;
+    border-radius: 9px;
+    padding: 2px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .seg span {
+    text-align: center;
+    padding: 7px;
+    border-radius: 7px;
+  }
+  .seg .on { background: white; color: var(--ink); }
+  .seg .off { color: var(--muted); }
+  .chips {
+    display: flex;
+    gap: 8px;
+    overflow: hidden;
+    padding: 0 16px 12px;
+  }
+  .chip {
+    flex: 0 0 auto;
+    background: rgba(46,115,122,.12);
+    color: var(--deep);
+    font-size: 12px;
+    font-weight: 700;
+    padding: 8px 12px;
+    border-radius: 999px;
+  }
+  .chip.on { background: var(--teal); color: white; }
+  .list-head {
+    padding: 4px 20px 8px;
+    font-size: 12px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .04em;
+  }
+  .card {
+    margin: 0 16px 10px;
+    background: var(--card);
+    border-radius: 16px;
+    padding: 14px;
+    display: flex;
+    gap: 12px;
+  }
+  .avatar {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    color: white;
+    font-size: 22px;
+    flex: 0 0 auto;
+  }
+  .meta { flex: 1; min-width: 0; }
+  .name { font-weight: 700; font-size: 15px; color: var(--ink); }
+  .sub { font-size: 12px; color: var(--muted); margin-top: 3px; }
+  .stats { font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .stats .star { color: var(--teal); font-weight: 700; }
+  .badge {
+    display: inline-block;
+    margin-top: 8px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--success);
+    background: rgba(51,140,97,.14);
+    padding: 4px 10px;
+    border-radius: 999px;
+  }
+  .heart { color: #e25555; font-size: 16px; }
+  .tabbar {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 72px;
+    background: rgba(255,255,255,.92);
+    border-top: 1px solid #ddd7cb;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    text-align: center;
+    padding-top: 10px;
+    font-size: 10px;
+    font-weight: 600;
+  }
+  .tab.on { color: var(--teal); }
+  .tab { color: var(--muted); }
+  .tab .ico { font-size: 18px; display: block; margin-bottom: 2px; }
+</style>
+</head>
+<body>
+  <div class="phone">
+    <div class="notch">9:41</div>
+    <div class="nav"><h1>Dogtor My Eyes</h1></div>
+    <div class="search">🔍 Name, breed, or specialty</div>
+    <div class="section">
+      <div class="label">Your coverage</div>
+      <div class="row"><span>Insurance plan</span><strong>VSP ▾</strong></div>
+      <div class="row"><span>In-network only</span><strong style="color:var(--teal)">On</strong></div>
+      <div class="seg"><span class="on">Distance</span><span class="off">Rating</span></div>
+    </div>
+    <div class="chips">
+      <div class="chip on">🐾 All</div>
+      <div class="chip">👓 Optometry</div>
+      <div class="chip">👁 Ophthalmology</div>
+      <div class="chip">Pediatric</div>
+    </div>
+    <div class="list-head">8 providers</div>
+    <div class="card">
+      <div class="avatar" style="background:#C4A35A">🐶</div>
+      <div class="meta">
+        <div style="display:flex;justify-content:space-between"><div class="name">Dr. Biscuit Barkley, OD</div><div class="heart">♥</div></div>
+        <div class="sub">Golden Retriever · Optometry</div>
+        <div class="stats"><span class="star">★ 4.9</span> · 214 reviews · 1.2 mi</div>
+        <div class="badge">In-network</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="avatar" style="background:#F4A261">🐶</div>
+      <div class="meta">
+        <div class="name">Dr. Daisy Dilate, OD</div>
+        <div class="sub">Labrador Retriever · Pediatric</div>
+        <div class="stats"><span class="star">★ 4.9</span> · 240 reviews · 1.7 mi</div>
+        <div class="badge">In-network</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="avatar" style="background:#6B4E71">🐶</div>
+      <div class="meta">
+        <div class="name">Dr. Frame Fernando, OD</div>
+        <div class="sub">French Bulldog · Contacts & Frames</div>
+        <div class="stats"><span class="star">★ 4.7</span> · 312 reviews · 0.8 mi</div>
+        <div class="badge">In-network</div>
+      </div>
+    </div>
+    <div class="tabbar">
+      <div class="tab on"><span class="ico">🔍</span>Browse</div>
+      <div class="tab"><span class="ico">♡</span>Favorites</div>
+    </div>
+  </div>
+</body>
+</html>
