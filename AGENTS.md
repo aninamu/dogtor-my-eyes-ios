@@ -40,7 +40,7 @@ python3 scripts/verify_provider_logic.py
 
 - Prefer editing `providers.json` over inventing providers in Swift.
 - Keep `ProviderStore.filteredProviders` and `scripts/verify_provider_logic.py` in sync.
-- Persist only via the existing `UserDefaults` keys in `ProviderStore` (`selectedInsurancePlan`, `favoriteProviderIDs`).
+- Persist only via the existing `UserDefaults` keys in `ProviderStore` (`selectedInsurancePlan`, `favoriteProviderIDs`, `requestedAppointments`).
 - Reuse `Theme`, `NetworkBadge`, and `ProviderAvatar` — do not hardcode teal/sand colors in views.
 - Booking is local-only (`BookingSheet`); do not add networking or analytics SDKs.
 

@@ -24,6 +24,11 @@ struct ContentView: View {
                 .tabItem {
                     Label("Favorites", systemImage: "heart.fill")
                 }
+
+            AppointmentsView()
+                .tabItem {
+                    Label("Appointments", systemImage: "calendar")
+                }
         }
         .tint(Theme.teal)
         .preferredColorScheme(.light)
