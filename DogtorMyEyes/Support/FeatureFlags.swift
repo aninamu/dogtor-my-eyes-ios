@@ -2,6 +2,8 @@ import Foundation
 
 enum FeatureFlag: String, CaseIterable {
     case phase1Finder
+    /// Lets the finder use Apple's on-device model when available; off forces the keyword rules.
+    case finderOnDeviceModel
 
     var defaultValue: Bool {
         switch self {
@@ -11,6 +13,8 @@ enum FeatureFlag: String, CaseIterable {
             #else
             return false
             #endif
+        case .finderOnDeviceModel:
+            return true
         }
     }
 
