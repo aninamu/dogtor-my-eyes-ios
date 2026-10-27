@@ -33,11 +33,14 @@ xcodebuild \
   build test
 ```
 
-On Linux (no Xcode), validate fixture + filter logic with:
+On Linux (no Xcode), validate the fixture schema and the filter logic with:
 
 ```bash
+python3 .cursor/skills/add-provider/scripts/validate_provider.py
 python3 scripts/verify_provider_logic.py
 ```
+
+`validate_provider.py` checks shape. `verify_provider_logic.py` mirrors `ProviderStore` filtering and asserts the catalog still has 12 providers. See [DogtorMyEyes/Data/AGENTS.md](DogtorMyEyes/Data/AGENTS.md).
 
 ## Project layout
 
@@ -54,3 +57,7 @@ DogtorMyEyesTests/
 ```
 
 Mock data lives in `DogtorMyEyes/Data/providers.json`. There is no auth and no network layer.
+
+## Agent tooling
+
+Cursor rules, hooks, skills, subagents, and the Bugbot guide are under `.cursor/`. What they run, and where they diverge from the Swift decoder, is in [AGENTS.md](AGENTS.md).
