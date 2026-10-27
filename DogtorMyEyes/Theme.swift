@@ -1,14 +1,14 @@
 import SwiftUI
 
 enum Theme {
-    static let teal = Color(red: 0.18, green: 0.45, blue: 0.48)
-    static let deepTeal = Color(red: 0.10, green: 0.28, blue: 0.32)
-    static let sand = Color(red: 0.96, green: 0.94, blue: 0.90)
-    static let ink = Color(red: 0.14, green: 0.16, blue: 0.18)
-    static let muted = Color(red: 0.42, green: 0.45, blue: 0.48)
-    static let card = Color.white
-    static let success = Color(red: 0.20, green: 0.55, blue: 0.38)
-    static let warning = Color(red: 0.75, green: 0.45, blue: 0.18)
+    static let teal = Color(Palette.teal)
+    static let deepTeal = Color(Palette.deepTeal)
+    static let sand = Color(Palette.sand)
+    static let ink = Color(Palette.ink)
+    static let muted = Color(Palette.muted)
+    static let card = Color(Palette.card)
+    static let success = Color(Palette.success)
+    static let warning = Color(Palette.warning)
 
     static let titleFont = Font.system(.title2, design: .rounded).weight(.bold)
     static let headlineFont = Font.system(.headline, design: .rounded)
@@ -16,30 +16,58 @@ enum Theme {
     static let captionFont = Font.system(.caption, design: .rounded)
 }
 
+extension Color {
+    init(_ rgb: RGBColor) {
+        self.init(red: rgb.red, green: rgb.green, blue: rgb.blue)
+    }
+
+    init?(hex: String) {
+        guard let rgb = RGBColor(hex: hex) else { return nil }
+        self.init(rgb)
+    }
+}
+
+extension Provider {
+    var color: Color {
+        Color(hex: avatarColor) ?? Theme.teal
+    }
+}
+
 struct NetworkBadge: View {
-    let inNetwork: Bool
+    let status: NetworkStatus
+
+    private var tint: Color {
+        status == .inNetwork ? Theme.success : Theme.warning
+    }
 
     var body: some View {
-        Text(inNetwork ? "In-network" : "Out-of-network")
+        Text(status == .inNetwork ? "In-network" : "Out-of-network")
             .font(Theme.captionFont.weight(.semibold))
-            .foregroundStyle(inNetwork ? Theme.success : Theme.warning)
+            .foregroundStyle(tint)
             .padding(.horizontal, 10)
             .padding(.vertical, 5)
-            .background(
-                (inNetwork ? Theme.success : Theme.warning).opacity(0.14),
-                in: Capsule()
-            )
+            .background(tint.opacity(Palette.tintOpacity), in: Capsule())
     }
 }
 
 struct ProviderAvatar: View {
-    let provider: Provider
+    let color: Color
     var size: CGFloat = 52
+
+    init(provider: Provider, size: CGFloat = 52) {
+        color = provider.color
+        self.size = size
+    }
+
+    init(colorHex: String, size: CGFloat = 52) {
+        color = Color(hex: colorHex) ?? Theme.teal
+        self.size = size
+    }
 
     var body: some View {
         ZStack {
             Circle()
-                .fill(provider.color.gradient)
+                .fill(color.gradient)
             Image(systemName: "dog.fill")
                 .font(.system(size: size * 0.42))
                 .foregroundStyle(.white.opacity(0.95))
