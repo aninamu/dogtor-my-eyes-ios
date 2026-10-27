@@ -51,6 +51,25 @@ enum InsurancePlan: String, Codable, CaseIterable, Identifiable, Hashable {
     }
 }
 
+enum AppointmentStatus: String, Codable {
+    case requested
+
+    var displayName: String {
+        switch self {
+        case .requested: return "Requested"
+        }
+    }
+}
+
+struct AppointmentRequest: Identifiable, Codable, Hashable {
+    let id: UUID
+    let providerID: String
+    let slot: Date
+    let plan: InsurancePlan
+    let requestedAt: Date
+    var status: AppointmentStatus = .requested
+}
+
 enum ProviderSort: String, CaseIterable, Identifiable {
     case distance
     case rating

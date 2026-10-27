@@ -18,12 +18,17 @@ final class ProviderStore {
         didSet { persistFavorites() }
     }
 
+    var appointments: [AppointmentRequest] = [] {
+        didSet { persistAppointments() }
+    }
+
     var selectedPlan: InsurancePlan {
         get { InsurancePlan(rawValue: selectedPlanRaw) ?? .vsp }
         set { selectedPlanRaw = newValue.rawValue }
     }
 
     private let persistenceEnabled: Bool
+    private let defaults: UserDefaults
 
     var filteredProviders: [Provider] {
         var result = providers
@@ -68,19 +73,32 @@ final class ProviderStore {
 
     init(userDefaults: UserDefaults = .standard, bundle: Bundle = .main) {
         persistenceEnabled = true
+        defaults = userDefaults
         selectedPlanRaw = userDefaults.string(forKey: Self.planKey) ?? InsurancePlan.vsp.rawValue
         if let saved = userDefaults.array(forKey: Self.favoritesKey) as? [String] {
             favoriteIDs = Set(saved)
+        }
+        if let data = userDefaults.data(forKey: Self.appointmentsKey) {
+            let decoder = JSONDecoder()
+            decoder.dateDecodingStrategy = .iso8601
+            appointments = (try? decoder.decode([AppointmentRequest].self, from: data)) ?? []
         }
         loadProviders(from: bundle)
     }
 
     /// Test-friendly initializer that skips disk I/O and UserDefaults writes.
-    init(providers: [Provider], selectedPlan: InsurancePlan = .vsp, favoriteIDs: Set<String> = []) {
+    init(
+        providers: [Provider],
+        selectedPlan: InsurancePlan = .vsp,
+        favoriteIDs: Set<String> = [],
+        appointments: [AppointmentRequest] = []
+    ) {
         persistenceEnabled = false
+        defaults = .standard
         self.providers = providers
         self.selectedPlanRaw = selectedPlan.rawValue
         self.favoriteIDs = favoriteIDs
+        self.appointments = appointments
     }
 
     func isFavorite(_ provider: Provider) -> Bool {
@@ -97,6 +115,30 @@ final class ProviderStore {
 
     func provider(id: String) -> Provider? {
         providers.first { $0.id == id }
+    }
+
+    func requestAppointment(with provider: Provider, slot: Date, plan: InsurancePlan) {
+        appointments.append(
+            AppointmentRequest(
+                id: UUID(),
+                providerID: provider.id,
+                slot: slot,
+                plan: plan,
+                requestedAt: Date()
+            )
+        )
+    }
+
+    func upcomingAppointments(now: Date = .now) -> [AppointmentRequest] {
+        appointments
+            .filter { $0.slot >= now }
+            .sorted { $0.slot < $1.slot }
+    }
+
+    func pastAppointments(now: Date = .now) -> [AppointmentRequest] {
+        appointments
+            .filter { $0.slot < now }
+            .sorted { $0.slot > $1.slot }
     }
 
     private func loadProviders(from bundle: Bundle) {
@@ -121,14 +163,23 @@ final class ProviderStore {
 
     private func persistPlan() {
         guard persistenceEnabled else { return }
-        UserDefaults.standard.set(selectedPlanRaw, forKey: Self.planKey)
+        defaults.set(selectedPlanRaw, forKey: Self.planKey)
     }
 
     private func persistFavorites() {
         guard persistenceEnabled else { return }
-        UserDefaults.standard.set(Array(favoriteIDs), forKey: Self.favoritesKey)
+        defaults.set(Array(favoriteIDs), forKey: Self.favoritesKey)
+    }
+
+    private func persistAppointments() {
+        guard persistenceEnabled else { return }
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        guard let data = try? encoder.encode(appointments) else { return }
+        defaults.set(data, forKey: Self.appointmentsKey)
     }
 
     private static let planKey = "selectedInsurancePlan"
     private static let favoritesKey = "favoriteProviderIDs"
+    private static let appointmentsKey = "requestedAppointments"
 }

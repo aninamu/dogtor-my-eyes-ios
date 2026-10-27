@@ -2,6 +2,7 @@ import SwiftUI
 
 struct BookingSheet: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(ProviderStore.self) private var store
     let provider: Provider
 
     @State private var selectedSlot: Date?
@@ -68,7 +69,8 @@ struct BookingSheet: View {
             }
 
             Button {
-                guard selectedSlot != nil else { return }
+                guard let selectedSlot, !confirmed else { return }
+                store.requestAppointment(with: provider, slot: selectedSlot, plan: store.selectedPlan)
                 confirmed = true
             } label: {
                 Text("Confirm request")
@@ -135,4 +137,5 @@ struct BookingSheet: View {
             avatarColor: "C4A35A"
         )
     )
+    .environment(ProviderStore(providers: []))
 }
