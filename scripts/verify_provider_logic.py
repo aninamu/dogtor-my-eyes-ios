@@ -20,9 +20,13 @@ SPECIALTY_DISPLAY = {
 
 
 def is_in_network(provider: dict, plan: str) -> bool:
-    if plan == "outOfPocket":
-        return True
     return plan in provider["acceptedPlans"]
+
+
+def accepts(provider: dict, coverage: str) -> bool:
+    if coverage == "selfPay":
+        return provider.get("acceptsSelfPay", True)
+    return is_in_network(provider, coverage)
 
 
 def filtered(
@@ -35,8 +39,8 @@ def filtered(
     sort: str = "distance",
 ) -> list[dict]:
     result = list(providers)
-    if in_network_only:
-        result = [p for p in result if is_in_network(p, plan)]
+    if plan == "selfPay" or in_network_only:
+        result = [p for p in result if accepts(p, plan)]
     if specialty:
         result = [p for p in result if p["specialty"] == specialty]
     query = search.strip().lower()
@@ -58,16 +62,22 @@ def filtered(
 def main() -> int:
     providers = json.loads(DATA.read_text())
     assert len(providers) == 12
+    assert all("outOfPocket" not in p["acceptedPlans"] for p in providers), "self-pay is not an insurance plan"
+    assert all("nextAvailable" not in p for p in providers), "openings must be relative slotTemplates"
+    for p in providers:
+        for t in p["slotTemplates"]:
+            assert t["dayOffset"] >= 0 and 0 <= t["hour"] < 24 and 0 <= t["minute"] < 60, p["id"]
 
     biscuit = next(p for p in providers if p["id"] == "biscuit-barkley")
     assert is_in_network(biscuit, "vsp")
     assert not is_in_network(biscuit, "davis")
-    assert is_in_network(biscuit, "outOfPocket")
+    assert not is_in_network(biscuit, "selfPay")
+    assert accepts(biscuit, "selfPay")
 
     vsp = filtered(providers, plan="vsp", in_network_only=True)
     assert all(is_in_network(p, "vsp") for p in vsp)
     assert "biscuit-barkley" in {p["id"] for p in vsp}
-    assert "rex-refract" not in {p["id"] for p in vsp}  # davis/outOfPocket only
+    assert "rex-refract" not in {p["id"] for p in vsp}  # davis only
 
     pediatric = filtered(providers, plan="vsp", in_network_only=False, specialty="pediatric")
     assert {p["id"] for p in pediatric} == {"pip-pupil", "daisy-dilate"}
@@ -75,11 +85,11 @@ def main() -> int:
     beagles = filtered(providers, plan="vsp", in_network_only=False, search="beagle")
     assert {p["id"] for p in beagles} == {"pip-pupil"}
 
-    by_distance = filtered(providers, plan="outOfPocket", in_network_only=True, sort="distance")
+    by_distance = filtered(providers, plan="selfPay", in_network_only=True, sort="distance")
     distances = [p["distanceMiles"] for p in by_distance]
     assert distances == sorted(distances)
 
-    by_rating = filtered(providers, plan="outOfPocket", in_network_only=True, sort="rating")
+    by_rating = filtered(providers, plan="selfPay", in_network_only=True, sort="rating")
     ratings = [(p["rating"], p["reviewCount"]) for p in by_rating]
     assert ratings == sorted(ratings, key=lambda t: (-t[0], -t[1]))
 

@@ -2,7 +2,8 @@ import SwiftUI
 
 struct ProviderRow: View {
     let provider: Provider
-    let plan: InsurancePlan
+    /// `nil` hides the badge, e.g. for self-pay where there is no network.
+    let networkStatus: NetworkStatus?
     let isFavorite: Bool
     var onToggleFavorite: () -> Void
 
@@ -23,8 +24,10 @@ struct ProviderRow: View {
                         Image(systemName: isFavorite ? "heart.fill" : "heart")
                             .foregroundStyle(isFavorite ? .red : Theme.muted)
                     }
-                    .buttonStyle(.plain)
+                    // Borderless keeps the tap on the heart instead of triggering the enclosing NavigationLink.
+                    .buttonStyle(.borderless)
                     .accessibilityLabel(isFavorite ? "Remove from favorites" : "Add to favorites")
+                    .accessibilityIdentifier(AccessibilityID.ProviderRow.favorite(provider.id))
                 }
 
                 Text("\(provider.breed) · \(provider.specialty.displayName)")
@@ -41,7 +44,9 @@ struct ProviderRow: View {
                 }
                 .font(Theme.captionFont)
 
-                NetworkBadge(inNetwork: provider.isInNetwork(for: plan))
+                if let networkStatus {
+                    NetworkBadge(status: networkStatus)
+                }
             }
         }
         .padding(.vertical, 4)

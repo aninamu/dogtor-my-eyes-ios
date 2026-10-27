@@ -17,11 +17,12 @@ struct FavoritesView: View {
                         NavigationLink(value: provider.id) {
                             ProviderRow(
                                 provider: provider,
-                                plan: store.selectedPlan,
+                                networkStatus: provider.networkStatus(for: store.coverage),
                                 isFavorite: true,
                                 onToggleFavorite: { store.toggleFavorite(provider) }
                             )
                         }
+                        .accessibilityIdentifier(AccessibilityID.ProviderRow.row(provider.id))
                     }
                 }
             }
@@ -41,4 +42,5 @@ struct FavoritesView: View {
 #Preview {
     FavoritesView()
         .environment(ProviderStore())
+        .environment(AppointmentStore(userDefaults: nil))
 }

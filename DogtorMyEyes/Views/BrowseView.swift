@@ -5,18 +5,27 @@ struct BrowseView: View {
 
     var body: some View {
         @Bindable var store = store
+        let providers = store.filteredProviders
 
         NavigationStack {
             List {
                 Section {
-                    Picker("Insurance plan", selection: $store.selectedPlan) {
-                        ForEach(InsurancePlan.allCases) { plan in
-                            Text(plan.displayName).tag(plan)
+                    Picker("Insurance plan", selection: $store.coverage) {
+                        ForEach(Coverage.allCases) { coverage in
+                            Text(coverage.displayName).tag(coverage)
                         }
                     }
                     .pickerStyle(.menu)
+                    .accessibilityIdentifier(AccessibilityID.Browse.planPicker)
 
-                    Toggle("In-network only", isOn: $store.inNetworkOnly)
+                    if store.coverage == .selfPay {
+                        Text("Self-pay isn’t an insurance network, so network badges are hidden. Showing providers that accept self-pay.")
+                            .font(Theme.captionFont)
+                            .foregroundStyle(Theme.muted)
+                    } else {
+                        Toggle("In-network only", isOn: $store.inNetworkOnly)
+                            .accessibilityIdentifier(AccessibilityID.Browse.inNetworkToggle)
+                    }
 
                     Picker("Sort by", selection: $store.sort) {
                         ForEach(ProviderSort.allCases) { option in
@@ -24,6 +33,7 @@ struct BrowseView: View {
                         }
                     }
                     .pickerStyle(.segmented)
+                    .accessibilityIdentifier(AccessibilityID.Browse.sortPicker)
                 } header: {
                     Text("Your coverage")
                 }
@@ -38,6 +48,7 @@ struct BrowseView: View {
                             ) {
                                 store.selectedSpecialty = nil
                             }
+                            .accessibilityIdentifier(AccessibilityID.Browse.allSpecialtiesChip)
 
                             ForEach(Specialty.allCases) { specialty in
                                 SpecialtyChip(
@@ -47,6 +58,7 @@ struct BrowseView: View {
                                 ) {
                                     store.selectedSpecialty = specialty
                                 }
+                                .accessibilityIdentifier(AccessibilityID.Browse.specialtyChip(specialty))
                             }
                         }
                         .padding(.vertical, 4)
@@ -61,26 +73,28 @@ struct BrowseView: View {
                             systemImage: "exclamationmark.triangle",
                             description: Text(loadError)
                         )
-                    } else if store.filteredProviders.isEmpty {
+                    } else if providers.isEmpty {
                         ContentUnavailableView(
                             "No providers match",
                             systemImage: "eye.slash",
                             description: Text("Try another plan, specialty, or search term.")
                         )
                     } else {
-                        ForEach(store.filteredProviders) { provider in
+                        ForEach(providers) { provider in
                             NavigationLink(value: provider.id) {
                                 ProviderRow(
                                     provider: provider,
-                                    plan: store.selectedPlan,
+                                    networkStatus: provider.networkStatus(for: store.coverage),
                                     isFavorite: store.isFavorite(provider),
                                     onToggleFavorite: { store.toggleFavorite(provider) }
                                 )
                             }
+                            .accessibilityIdentifier(AccessibilityID.ProviderRow.row(provider.id))
                         }
                     }
                 } header: {
-                    Text("\(store.filteredProviders.count) providers")
+                    Text("\(providers.count) providers")
+                        .accessibilityIdentifier(AccessibilityID.Browse.resultsHeader)
                 }
             }
             .navigationTitle("Dogtor My Eyes")
@@ -113,10 +127,12 @@ private struct SpecialtyChip: View {
                 .background(selected ? Theme.teal : Theme.teal.opacity(0.12), in: Capsule())
         }
         .buttonStyle(.plain)
+        .accessibilityAddTraits(selected ? .isSelected : [])
     }
 }
 
 #Preview {
     BrowseView()
         .environment(ProviderStore())
+        .environment(AppointmentStore(userDefaults: nil))
 }

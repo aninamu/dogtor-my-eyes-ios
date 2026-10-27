@@ -5,11 +5,12 @@ SwiftUI iOS marketplace for browsing **in-network eye care** — every provider 
 ## Features
 
 - Browse ~12 dog eye-care providers with specialty filters
-- Insurance plan picker (VSP, EyeMed, Davis Vision, Spectera, Out of Pocket)
+- Coverage picker: insurance plans (VSP, EyeMed, Davis Vision, Spectera) or self-pay, which is modeled separately and never shown as "in-network"
 - In-network filter, search, and sort by distance or rating
-- Provider detail with bio, services, accepted plans, and next slots
-- Local appointment request sheet (no backend)
-- Favorites persisted with `UserDefaults`
+- Provider detail with bio, services, accepted plans, and upcoming openings shown in the clinic's time zone
+- Openings are generated relative to today from `slotTemplates`, and past times are never shown or bookable
+- Appointments tab: requests are saved on-device, grouped into Upcoming (soonest first) and Past
+- Favorites, coverage, and appointment requests persisted with `UserDefaults` (declared in `PrivacyInfo.xcprivacy`)
 
 ## Requirements
 
@@ -33,11 +34,24 @@ xcodebuild \
   build test
 ```
 
-On Linux (no Xcode), validate fixture + filter logic with:
+On Linux (no Xcode), sanity-check the fixture shape with:
 
 ```bash
 python3 scripts/verify_provider_logic.py
 ```
+
+CI (`.github/workflows/ios-ci.yml`) runs that script and `xcodebuild test` on a macOS runner for every pull request.
+
+## Feature flags
+
+`FeatureFlags` resolves each `FeatureFlag` from, in order: the launch arguments `--enable-<flag>` / `--disable-<flag>`, then the
+UserDefaults key `FeatureFlag.<flag>` (also settable as a launch argument, `-FeatureFlag.<flag> YES`), then the flag's default.
+`phase1Finder` defaults to on in Debug builds and off in Release.
+
+## UI automation
+
+Stable accessibility identifiers live in `DogtorMyEyes/Support/AccessibilityID.swift` (for example `browse.planPicker`,
+`browse.inNetworkToggle`, `booking.confirm`). Treat them as API for QA scripts.
 
 ## Project layout
 
@@ -45,12 +59,17 @@ python3 scripts/verify_provider_logic.py
 DogtorMyEyes/
   DogtorMyEyesApp.swift
   Theme.swift
+  Palette.swift            # platform-independent colors (contrast-tested)
+  PrivacyInfo.xcprivacy
   Models/Provider.swift
-  Data/providers.json
+  Data/providers.json      # fictional demo data with relative slotTemplates
+  Data/ProviderCatalog.swift
   Data/ProviderStore.swift
+  Data/AppointmentStore.swift
+  Data/SlotSchedule.swift
+  Support/                 # feature flags, logging, accessibility IDs
   Views/...
 DogtorMyEyesTests/
-  ProviderStoreTests.swift
 ```
 
 Mock data lives in `DogtorMyEyes/Data/providers.json`. There is no auth and no network layer.

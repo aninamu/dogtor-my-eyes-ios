@@ -2,13 +2,10 @@ import SwiftUI
 
 struct ProviderDetailView: View {
     @Environment(ProviderStore.self) private var store
+    @Environment(AppointmentStore.self) private var appointments
     let provider: Provider
 
     @State private var showBooking = false
-
-    private var inNetwork: Bool {
-        provider.isInNetwork(for: store.selectedPlan)
-    }
 
     var body: some View {
         ScrollView {
@@ -17,19 +14,27 @@ struct ProviderDetailView: View {
                 bioSection
                 servicesSection
                 plansSection
-                slotsPreview
 
-                Button {
-                    showBooking = true
-                } label: {
-                    Label("Request appointment", systemImage: "calendar.badge.plus")
-                        .font(Theme.headlineFont)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
+                TimelineView(.everyMinute) { context in
+                    let upcoming = provider.upcomingSlots(after: context.date)
+                    VStack(alignment: .leading, spacing: 20) {
+                        slotsPreview(upcoming)
+
+                        Button {
+                            showBooking = true
+                        } label: {
+                            Label("Request appointment", systemImage: "calendar.badge.plus")
+                                .font(Theme.headlineFont)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(Theme.teal)
+                        .padding(.top, 4)
+                        .disabled(upcoming.isEmpty)
+                        .accessibilityIdentifier(AccessibilityID.Detail.requestAppointment)
+                    }
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(Theme.teal)
-                .padding(.top, 4)
             }
             .padding(20)
         }
@@ -45,10 +50,13 @@ struct ProviderDetailView: View {
                         .foregroundStyle(store.isFavorite(provider) ? .red : Theme.muted)
                 }
                 .accessibilityLabel(store.isFavorite(provider) ? "Remove from favorites" : "Add to favorites")
+                .accessibilityIdentifier(AccessibilityID.Detail.favorite)
             }
         }
         .sheet(isPresented: $showBooking) {
             BookingSheet(provider: provider)
+                .environment(store)
+                .environment(appointments)
         }
     }
 
@@ -73,7 +81,9 @@ struct ProviderDetailView: View {
             .font(Theme.captionFont)
             .foregroundStyle(Theme.muted)
 
-            NetworkBadge(inNetwork: inNetwork)
+            if let status = provider.networkStatus(for: store.coverage) {
+                NetworkBadge(status: status)
+            }
         }
         .frame(maxWidth: .infinity)
         .padding(20)
@@ -115,20 +125,43 @@ struct ProviderDetailView: View {
                 .font(Theme.headlineFont)
                 .foregroundStyle(Theme.ink)
 
-            FlowWrap(items: provider.acceptedPlans.map(\.displayName))
+            if provider.acceptedPlans.isEmpty {
+                Text("No insurance plans on file.")
+                    .font(Theme.bodyFont)
+                    .foregroundStyle(Theme.muted)
+            } else {
+                FlowWrap(items: provider.acceptedPlans.map(\.displayName))
+            }
+
+            Label(
+                provider.acceptsSelfPay ? "Self-pay accepted" : "Self-pay not accepted",
+                systemImage: provider.acceptsSelfPay ? "creditcard" : "xmark.circle"
+            )
+            .font(Theme.captionFont)
+            .foregroundStyle(Theme.muted)
         }
     }
 
-    private var slotsPreview: some View {
+    private func slotsPreview(_ upcoming: [Date]) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Next available")
                 .font(Theme.headlineFont)
                 .foregroundStyle(Theme.ink)
 
-            ForEach(provider.nextAvailable.prefix(3), id: \.self) { date in
-                Label(date.formatted(date: .abbreviated, time: .shortened), systemImage: "clock")
+            if upcoming.isEmpty {
+                Label("No upcoming openings. Check back soon.", systemImage: "calendar.badge.exclamationmark")
                     .font(Theme.bodyFont)
-                    .foregroundStyle(Theme.ink)
+                    .foregroundStyle(Theme.muted)
+                    .accessibilityIdentifier(AccessibilityID.Detail.noOpenings)
+            } else {
+                ForEach(upcoming.prefix(3), id: \.self) { date in
+                    Label(SlotFormatter.string(for: date, in: provider.timeZone), systemImage: "clock")
+                        .font(Theme.bodyFont)
+                        .foregroundStyle(Theme.ink)
+                }
+                Text("Times shown in the clinic’s time zone.")
+                    .font(Theme.captionFont)
+                    .foregroundStyle(Theme.muted)
             }
         }
     }
@@ -208,10 +241,11 @@ private struct FlexibleChipLayout: Layout {
                 distanceMiles: 1.2,
                 bio: "Warm, thorough exams with a gentle paw.",
                 services: ["Comprehensive eye exam", "Prescription renewal"],
-                nextAvailable: [Date().addingTimeInterval(86_400)],
+                availableSlots: [Date().addingTimeInterval(86_400)],
                 avatarColor: "C4A35A"
             )
         )
     }
     .environment(ProviderStore())
+    .environment(AppointmentStore(userDefaults: nil))
 }
