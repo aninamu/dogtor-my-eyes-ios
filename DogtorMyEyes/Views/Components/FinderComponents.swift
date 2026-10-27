@@ -59,7 +59,7 @@ enum FinderStatusKind: Equatable {
     case notSure
     case error(String)
     case offline
-    case basicMatching
+    case basicMatching(FinderFallbackReason?)
 }
 
 struct FinderStatusView: View {
@@ -78,12 +78,15 @@ struct FinderStatusView: View {
             }
 
             VStack(alignment: .leading, spacing: 4) {
-                Text(title)
-                    .font(Theme.headlineFont)
-                    .foregroundStyle(Theme.ink)
-                Text(message)
-                    .font(Theme.captionFont)
-                    .foregroundStyle(Theme.muted)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title)
+                        .font(Theme.headlineFont)
+                        .foregroundStyle(Theme.ink)
+                    Text(message)
+                        .font(Theme.captionFont)
+                        .foregroundStyle(Theme.muted)
+                }
+                .accessibilityElement(children: .combine)
                 if let onRetry, case .error = kind {
                     Button("Try again", action: onRetry)
                         .font(Theme.captionFont.weight(.semibold))
@@ -94,7 +97,7 @@ struct FinderStatusView: View {
             }
         }
         .padding(.vertical, 4)
-        .accessibilityElement(children: .combine)
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier(AccessibilityID.Finder.status)
     }
 
@@ -114,6 +117,8 @@ struct FinderStatusView: View {
         case .notSure: return "Try adding a symptom, your plan, an area, or a day — or tap a chip to choose."
         case .error(let message): return message
         case .offline: return "The finder still works. Everything runs on this device."
+        case .basicMatching(.timedOut): return "Smart matching took too long, so results use built-in keywords. Try again to use it."
+        case .basicMatching(.failed): return "Smart matching hit a problem, so results use built-in keywords. Try again to use it."
         case .basicMatching: return "Smart matching isn’t available on this device, so results use built-in keywords."
         }
     }

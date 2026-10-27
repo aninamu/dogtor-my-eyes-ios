@@ -85,7 +85,7 @@ struct BrowseView: View {
                     FinderStatusView(kind: .notSure)
                 }
                 if finder.usedBasicMatching, finder.fallbackReason != .disabled {
-                    FinderStatusView(kind: .basicMatching)
+                    FinderStatusView(kind: .basicMatching(finder.fallbackReason))
                 }
             }
 
