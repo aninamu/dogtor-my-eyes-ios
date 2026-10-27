@@ -48,6 +48,25 @@ CI (`.github/workflows/ios-ci.yml`) runs that script and `xcodebuild test` on a 
 UserDefaults key `FeatureFlag.<flag>` (also settable as a launch argument, `-FeatureFlag.<flag> YES`), then the flag's default.
 `phase1Finder` defaults to on in Debug builds and off in Release.
 
+## Conversational finder (Phase 1, `phase1Finder`)
+
+A search bar pinned to the top of Browse accepts requests like "my pup's eye is cloudy, I have VSP, near Brooklyn, Saturday".
+The query becomes the app's structured filters (specialty, plan, in-network only, area or distance, urgency), shown as
+editable chips, and the normal provider cards are ranked with a deterministic "why this match" line.
+
+- Parsers only produce filter values. Providers, coverage, and openings always come from `providers.json`.
+- `FinderQueryParser` is the seam: `RuleBasedQueryParser` (deterministic keywords, multilingual, typo-tolerant) is always
+  available; `FoundationModelsQueryParser` uses Apple's on-device model on iOS 26+ when Apple Intelligence is ready.
+  `ResilientFinderParser` times out slow model calls, falls back to the rules on any error, discards values outside the
+  catalog, and always takes triage from the rules. A server-backed parser can conform to the same protocol later.
+- Symptoms show a persistent "Not a diagnosis" note; red-flag wording shows urgent-care guidance first.
+- Nothing is booked automatically: the user still picks a slot and taps Confirm.
+- Query text never leaves the device. There are no network calls or API keys.
+- `--disable-finderOnDeviceModel` forces the rules parser; `--disable-phase1Finder` hides the finder.
+
+Evals: `DogtorMyEyesTests/Fixtures/finder_eval.json` holds the prompts and expected filters; `FinderEvalTests` runs the rules
+parser against every case.
+
 ## UI automation
 
 Stable accessibility identifiers live in `DogtorMyEyes/Support/AccessibilityID.swift` (for example `browse.planPicker`,
@@ -67,7 +86,8 @@ DogtorMyEyes/
   Data/ProviderStore.swift
   Data/AppointmentStore.swift
   Data/SlotSchedule.swift
-  Support/                 # feature flags, logging, accessibility IDs
+  Finder/                  # finder filters, parsers, ranking, view model
+  Support/                 # feature flags, logging, connectivity, accessibility IDs
   Views/...
 DogtorMyEyesTests/
 ```
