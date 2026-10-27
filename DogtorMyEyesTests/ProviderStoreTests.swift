@@ -108,6 +108,56 @@ final class ProviderStoreTests: XCTestCase {
         XCTAssertTrue(store.favoriteProviders.isEmpty)
     }
 
+    func testRequestAppointmentAppendsEveryRequest() {
+        let store = ProviderStore(providers: sampleProviders, selectedPlan: .vsp)
+        let slot = Date(timeIntervalSince1970: 2_000_000_000)
+
+        store.requestAppointment(with: sampleProviders[0], slot: slot, plan: .vsp)
+        store.requestAppointment(with: sampleProviders[0], slot: slot.addingTimeInterval(3_600), plan: .vsp)
+        store.requestAppointment(with: sampleProviders[1], slot: slot, plan: .eyeMed)
+
+        XCTAssertEqual(store.appointments.count, 3)
+        XCTAssertEqual(store.appointments.map(\.providerID), ["in-vsp", "in-vsp", "in-eyemed"])
+        XCTAssertEqual(store.appointments.last?.plan, .eyeMed)
+        XCTAssertTrue(store.appointments.allSatisfy { $0.status == .requested })
+    }
+
+    func testUpcomingAndPastAppointmentsSorting() {
+        let now = Date(timeIntervalSince1970: 2_000_000_000)
+        let appointments = [
+            AppointmentRequest(providerID: "in-vsp", slot: now.addingTimeInterval(7_200), plan: .vsp),
+            AppointmentRequest(providerID: "in-eyemed", slot: now.addingTimeInterval(-7_200), plan: .eyeMed),
+            AppointmentRequest(providerID: "pediatric-both", slot: now.addingTimeInterval(3_600), plan: .vsp),
+            AppointmentRequest(providerID: "in-vsp", slot: now.addingTimeInterval(-3_600), plan: .vsp),
+            AppointmentRequest(providerID: "in-eyemed", slot: now, plan: .eyeMed)
+        ]
+        let store = ProviderStore(providers: sampleProviders, appointments: appointments)
+
+        let upcoming = store.upcomingAppointments(now: now).map(\.slot)
+        let past = store.pastAppointments(now: now).map(\.slot)
+
+        XCTAssertEqual(upcoming, [now, now.addingTimeInterval(3_600), now.addingTimeInterval(7_200)])
+        XCTAssertEqual(past, [now.addingTimeInterval(-3_600), now.addingTimeInterval(-7_200)])
+    }
+
+    func testAppointmentsPersistAcrossStoreInstances() throws {
+        let suiteName = "ProviderStoreTests.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let slot = Date(timeIntervalSince1970: 2_000_000_000)
+        let first = ProviderStore(userDefaults: defaults)
+        let saved = first.requestAppointment(with: sampleProviders[2], slot: slot, plan: .davis)
+
+        let reloaded = ProviderStore(userDefaults: defaults)
+
+        XCTAssertEqual(reloaded.appointments.count, 1)
+        XCTAssertEqual(reloaded.appointments.first?.id, saved.id)
+        XCTAssertEqual(reloaded.appointments.first?.providerID, "pediatric-both")
+        XCTAssertEqual(reloaded.appointments.first?.slot, slot)
+        XCTAssertEqual(reloaded.appointments.first?.plan, .davis)
+    }
+
     func testBundledProvidersJSONDecodes() throws {
         let bundle = Bundle(for: ProviderStoreTests.self)
         let url = bundle.url(forResource: "providers", withExtension: "json")

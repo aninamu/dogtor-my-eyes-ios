@@ -10,6 +10,7 @@ SwiftUI iOS marketplace for browsing **in-network eye care** — every provider 
 - Provider detail with bio, services, accepted plans, and next slots
 - Local appointment request sheet (no backend)
 - Favorites persisted with `UserDefaults`
+- Appointments tab listing requested appointments (upcoming and past), persisted with `UserDefaults`
 
 ## Requirements
 

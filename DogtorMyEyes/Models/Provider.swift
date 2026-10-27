@@ -89,6 +89,41 @@ struct Provider: Identifiable, Codable, Hashable {
     }
 }
 
+enum AppointmentStatus: String, Codable, Hashable {
+    case requested
+
+    var displayName: String {
+        switch self {
+        case .requested: return "Requested"
+        }
+    }
+}
+
+struct AppointmentRequest: Identifiable, Codable, Hashable {
+    let id: UUID
+    let providerID: String
+    let slot: Date
+    let plan: InsurancePlan
+    let requestedAt: Date
+    var status: AppointmentStatus
+
+    init(
+        id: UUID = UUID(),
+        providerID: String,
+        slot: Date,
+        plan: InsurancePlan,
+        requestedAt: Date = .now,
+        status: AppointmentStatus = .requested
+    ) {
+        self.id = id
+        self.providerID = providerID
+        self.slot = slot
+        self.plan = plan
+        self.requestedAt = requestedAt
+        self.status = status
+    }
+}
+
 extension Color {
     init?(hex: String) {
         var cleaned = hex.trimmingCharacters(in: .whitespacesAndNewlines)

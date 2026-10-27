@@ -18,12 +18,16 @@ final class ProviderStore {
         didSet { persistFavorites() }
     }
 
+    private(set) var appointments: [AppointmentRequest] = [] {
+        didSet { persistAppointments() }
+    }
+
     var selectedPlan: InsurancePlan {
         get { InsurancePlan(rawValue: selectedPlanRaw) ?? .vsp }
         set { selectedPlanRaw = newValue.rawValue }
     }
 
-    private let persistenceEnabled: Bool
+    private let defaults: UserDefaults?
 
     var filteredProviders: [Provider] {
         var result = providers
@@ -67,20 +71,30 @@ final class ProviderStore {
     }
 
     init(userDefaults: UserDefaults = .standard, bundle: Bundle = .main) {
-        persistenceEnabled = true
+        defaults = userDefaults
         selectedPlanRaw = userDefaults.string(forKey: Self.planKey) ?? InsurancePlan.vsp.rawValue
         if let saved = userDefaults.array(forKey: Self.favoritesKey) as? [String] {
             favoriteIDs = Set(saved)
+        }
+        if let data = userDefaults.data(forKey: Self.appointmentsKey),
+           let saved = try? Self.makeDecoder().decode([AppointmentRequest].self, from: data) {
+            appointments = saved
         }
         loadProviders(from: bundle)
     }
 
     /// Test-friendly initializer that skips disk I/O and UserDefaults writes.
-    init(providers: [Provider], selectedPlan: InsurancePlan = .vsp, favoriteIDs: Set<String> = []) {
-        persistenceEnabled = false
+    init(
+        providers: [Provider],
+        selectedPlan: InsurancePlan = .vsp,
+        favoriteIDs: Set<String> = [],
+        appointments: [AppointmentRequest] = []
+    ) {
+        defaults = nil
         self.providers = providers
         self.selectedPlanRaw = selectedPlan.rawValue
         self.favoriteIDs = favoriteIDs
+        self.appointments = appointments
     }
 
     func isFavorite(_ provider: Provider) -> Bool {
@@ -99,10 +113,26 @@ final class ProviderStore {
         providers.first { $0.id == id }
     }
 
-    private func loadProviders(from bundle: Bundle) {
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
+    @discardableResult
+    func requestAppointment(with provider: Provider, slot: Date, plan: InsurancePlan) -> AppointmentRequest {
+        let request = AppointmentRequest(providerID: provider.id, slot: slot, plan: plan)
+        appointments.append(request)
+        return request
+    }
 
+    func upcomingAppointments(now: Date = .now) -> [AppointmentRequest] {
+        appointments
+            .filter { $0.slot >= now }
+            .sorted { $0.slot < $1.slot }
+    }
+
+    func pastAppointments(now: Date = .now) -> [AppointmentRequest] {
+        appointments
+            .filter { $0.slot < now }
+            .sorted { $0.slot > $1.slot }
+    }
+
+    private func loadProviders(from bundle: Bundle) {
         guard let url = bundle.url(forResource: "providers", withExtension: "json") else {
             loadError = "Missing providers.json in app bundle."
             providers = []
@@ -111,7 +141,7 @@ final class ProviderStore {
 
         do {
             let data = try Data(contentsOf: url)
-            providers = try decoder.decode([Provider].self, from: data)
+            providers = try Self.makeDecoder().decode([Provider].self, from: data)
             loadError = nil
         } catch {
             loadError = "Could not load providers: \(error.localizedDescription)"
@@ -120,15 +150,28 @@ final class ProviderStore {
     }
 
     private func persistPlan() {
-        guard persistenceEnabled else { return }
-        UserDefaults.standard.set(selectedPlanRaw, forKey: Self.planKey)
+        defaults?.set(selectedPlanRaw, forKey: Self.planKey)
     }
 
     private func persistFavorites() {
-        guard persistenceEnabled else { return }
-        UserDefaults.standard.set(Array(favoriteIDs), forKey: Self.favoritesKey)
+        defaults?.set(Array(favoriteIDs), forKey: Self.favoritesKey)
+    }
+
+    private func persistAppointments() {
+        guard let defaults else { return }
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        guard let data = try? encoder.encode(appointments) else { return }
+        defaults.set(data, forKey: Self.appointmentsKey)
+    }
+
+    private static func makeDecoder() -> JSONDecoder {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return decoder
     }
 
     private static let planKey = "selectedInsurancePlan"
     private static let favoritesKey = "favoriteProviderIDs"
+    private static let appointmentsKey = "requestedAppointments"
 }
