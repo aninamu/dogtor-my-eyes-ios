@@ -104,7 +104,7 @@ final class FinderModelTests: XCTestCase {
         XCTAssertTrue(finder.planFromSettings)
         XCTAssertEqual(finder.results(from: providers, now: Fixtures.now).map(\.provider.id), ["ophth"])
 
-        finder.filters.specialty = nil
+        finder.setSpecialty(nil)
         XCTAssertEqual(Set(finder.results(from: providers, now: Fixtures.now).map(\.provider.id)), ["ophth", "optom"])
     }
 
