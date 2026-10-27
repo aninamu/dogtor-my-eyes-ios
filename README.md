@@ -59,6 +59,12 @@ editable chips, and the normal provider cards are ranked with a deterministic "w
   available; `FoundationModelsQueryParser` uses Apple's on-device model on iOS 26+ when Apple Intelligence is ready.
   `ResilientFinderParser` times out slow model calls, falls back to the rules on any error, discards values outside the
   catalog, and always takes triage from the rules. A server-backed parser can conform to the same protocol later.
+- The finder bar is the only search field while the flag is on. If nothing is understood, it falls back to keyword
+  search over provider names and breeds.
+- Inferred or typo-corrected chips (and a plan taken from settings) get a dashed "guessed" outline, and one clarify
+  question asks about the most important uncertain chip. Urgent requests are never questioned.
+- With no matches, the empty state names the chip that's limiting results and offers a one-tap way to loosen it.
+- VoiceOver announces the match count when results change, plus a note when keyword fallback turns on.
 - Symptoms show a persistent "Not a diagnosis" note; red-flag wording shows urgent-care guidance first.
 - Nothing is booked automatically: the user still picks a slot and taps Confirm.
 - Query text never leaves the device. There are no network calls or API keys.
