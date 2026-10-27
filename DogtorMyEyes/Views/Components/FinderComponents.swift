@@ -166,40 +166,79 @@ struct TriageNotice: View {
     }
 }
 
+enum FinderChipState: Equatable {
+    /// Stated by the user or set by them: filled.
+    case confirmed
+    /// Inferred, typo-corrected, or taken from settings: dashed outline so it reads as a guess.
+    case guessed
+    /// Nothing understood for this slot.
+    case empty
+
+    var accessibilityValue: String {
+        switch self {
+        case .confirmed: return ""
+        case .guessed: return "Guessed. Double-tap to confirm or change."
+        case .empty: return "Not set. Double-tap to choose."
+        }
+    }
+}
+
 /// A tappable "understood" chip; the menu content edits the value.
 struct FinderChip<MenuContent: View>: View {
     let title: String
     let value: String
-    let isSet: Bool
+    let state: FinderChipState
     let identifier: String
     @ViewBuilder var menu: () -> MenuContent
 
+    private var label: AttributedString {
+        var title = AttributedString("\(self.title): ")
+        title.font = Theme.captionFont
+        var value = AttributedString(self.value)
+        value.font = Theme.captionFont.weight(.semibold)
+        return title + value
+    }
+
     var body: some View {
         Menu(content: menu) {
-            HStack(spacing: 0) {
-                Text("\(title): ")
-                    .font(Theme.captionFont)
-                Text(value)
-                    .font(Theme.captionFont.weight(.semibold))
-                Image(systemName: "chevron.down")
-                    .padding(.leading, 4)
+            HStack(alignment: .firstTextBaseline, spacing: 4) {
+                Text(label)
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
+                Image(systemName: state == .guessed ? "questionmark.circle" : "chevron.down")
                     .font(Theme.captionFont)
                     .accessibilityHidden(true)
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
-            .foregroundStyle(isSet ? .white : Theme.deepTeal)
-            .background(isSet ? Theme.teal : Theme.teal.opacity(0.12), in: Capsule())
+            .foregroundStyle(state == .confirmed ? .white : Theme.deepTeal)
+            .background(background, in: Capsule())
+            .overlay {
+                if state == .guessed {
+                    Capsule()
+                        .strokeBorder(Theme.teal, style: StrokeStyle(lineWidth: 1.5, dash: [4, 3]))
+                }
+            }
         }
         .accessibilityLabel("\(title), \(value)")
-        .accessibilityHint("Double-tap to change.")
+        .accessibilityValue(state.accessibilityValue)
+        .accessibilityHint(state == .confirmed ? "Double-tap to change." : "")
         .accessibilityIdentifier(identifier)
+    }
+
+    private var background: Color {
+        switch state {
+        case .confirmed: return Theme.teal
+        case .guessed: return Theme.card
+        case .empty: return Theme.teal.opacity(0.12)
+        }
     }
 }
 
 /// "Here's what I understood": Specialty, Plan, Near, and Urgency chips over the finder's filters.
+/// Chips wrap onto new rows rather than scrolling, so every chip stays reachable at large text sizes.
 struct UnderstoodChipsRow: View {
-    @Bindable var finder: FinderModel
+    let finder: FinderModel
     let areas: [String]
 
     private static let distanceOptions: [Double] = [2, 5, 10]
@@ -209,27 +248,31 @@ struct UnderstoodChipsRow: View {
             Text("Here’s what I understood")
                 .font(Theme.captionFont.weight(.semibold))
                 .foregroundStyle(Theme.muted)
+                .accessibilityAddTraits(.isHeader)
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    specialtyChip
-                    planChip
-                    nearChip
-                    urgencyChip
-                }
-                .padding(.vertical, 2)
+            FlowLayout(spacing: 8) {
+                specialtyChip
+                planChip
+                nearChip
+                urgencyChip
             }
+            .padding(.vertical, 2)
         }
+    }
+
+    private func state(_ slot: FinderSlot, isSet: Bool) -> FinderChipState {
+        guard isSet else { return .empty }
+        return finder.filters.guessed.contains(slot) ? .guessed : .confirmed
     }
 
     private var specialtyChip: some View {
         FinderChip(
             title: "Specialty",
             value: finder.filters.specialty?.displayName ?? "Any",
-            isSet: finder.filters.specialty != nil,
+            state: state(.specialty, isSet: finder.filters.specialty != nil),
             identifier: AccessibilityID.Finder.chip("specialty")
         ) {
-            Picker("Specialty", selection: $finder.filters.specialty) {
+            Picker("Specialty", selection: Binding(get: { finder.filters.specialty }, set: { finder.setSpecialty($0) })) {
                 Text("Any specialty").tag(Specialty?.none)
                 ForEach(Specialty.allCases) { specialty in
                     Label(specialty.displayName, systemImage: specialty.systemImage).tag(Specialty?.some(specialty))
@@ -250,7 +293,7 @@ struct UnderstoodChipsRow: View {
         FinderChip(
             title: "Plan",
             value: planValue,
-            isSet: finder.plan != nil,
+            state: state(.plan, isSet: finder.plan != nil),
             identifier: AccessibilityID.Finder.chip("plan")
         ) {
             Picker("Plan", selection: Binding(get: { finder.plan }, set: { finder.setPlan($0) })) {
@@ -260,7 +303,10 @@ struct UnderstoodChipsRow: View {
                 }
             }
             if case .coverage(.insurance)? = finder.plan {
-                Toggle("In-network only", isOn: $finder.filters.inNetworkOnly)
+                Toggle(
+                    "In-network only",
+                    isOn: Binding(get: { finder.filters.inNetworkOnly }, set: { finder.setInNetworkOnly($0) })
+                )
             }
         }
     }
@@ -276,28 +322,35 @@ struct UnderstoodChipsRow: View {
     }
 
     private var nearChip: some View {
-        FinderChip(
+        let filters = finder.filters
+        return FinderChip(
             title: "Near",
-            value: finder.filters.nearDisplayName,
-            isSet: finder.filters.hasNearPreference,
+            value: filters.nearDisplayName,
+            state: state(.near, isSet: filters.hasNearPreference),
             identifier: AccessibilityID.Finder.chip("near")
         ) {
-            nearButton("Anywhere", selected: !finder.filters.hasNearPreference) {
-                finder.filters.area = nil
-                finder.filters.maxDistanceMiles = nil
-                finder.filters.prefersNearby = false
+            nearButton("Anywhere", selected: !filters.hasNearPreference) {
+                finder.setNear(area: nil, maxDistanceMiles: nil)
             }
             Section("Area") {
                 ForEach(areas, id: \.self) { area in
-                    nearButton(area, selected: finder.filters.area == area) {
-                        finder.filters.area = finder.filters.area == area ? nil : area
+                    nearButton(area, selected: filters.area == area) {
+                        finder.setNear(
+                            area: filters.area == area ? nil : area,
+                            maxDistanceMiles: filters.maxDistanceMiles,
+                            prefersNearby: filters.prefersNearby
+                        )
                     }
                 }
             }
             Section("Distance") {
                 ForEach(Self.distanceOptions, id: \.self) { miles in
-                    nearButton("Within \(FinderFilters.milesText(miles)) mi", selected: finder.filters.maxDistanceMiles == miles) {
-                        finder.filters.maxDistanceMiles = finder.filters.maxDistanceMiles == miles ? nil : miles
+                    nearButton("Within \(FinderFilters.milesText(miles)) mi", selected: filters.maxDistanceMiles == miles) {
+                        finder.setNear(
+                            area: filters.area,
+                            maxDistanceMiles: filters.maxDistanceMiles == miles ? nil : miles,
+                            prefersNearby: filters.prefersNearby
+                        )
                     }
                 }
             }
@@ -318,13 +371,81 @@ struct UnderstoodChipsRow: View {
         FinderChip(
             title: "Urgency",
             value: finder.filters.urgency.displayName,
-            isSet: finder.filters.urgency != .anyTime,
+            state: state(.urgency, isSet: finder.filters.urgency != .anyTime),
             identifier: AccessibilityID.Finder.chip("urgency")
         ) {
-            Picker("Urgency", selection: $finder.filters.urgency) {
+            Picker("Urgency", selection: Binding(get: { finder.filters.urgency }, set: { finder.setUrgency($0) })) {
                 ForEach(FinderUrgency.allCases, id: \.self) { urgency in
                     Text(urgency.displayName).tag(urgency)
                 }
+            }
+        }
+    }
+}
+
+/// Asks one question about the most important uncertain chip, with tappable answers.
+struct ClarifyPrompt: View {
+    let question: ClarifyQuestion
+    var onAnswer: (ClarifyAnswer) -> Void
+    var onDismiss: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label(question.prompt, systemImage: "questionmark.bubble")
+                .font(Theme.bodyFont)
+                .foregroundStyle(Theme.ink)
+                .accessibilityAddTraits(.isHeader)
+
+            FlowLayout(spacing: 8) {
+                ForEach(Array(question.answers.enumerated()), id: \.element.id) { index, answer in
+                    Button {
+                        onAnswer(answer)
+                    } label: {
+                        Text(answer.title)
+                            .font(Theme.captionFont.weight(.semibold))
+                            .multilineTextAlignment(.leading)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .foregroundStyle(Theme.deepTeal)
+                            .background(Theme.teal.opacity(0.12), in: Capsule())
+                    }
+                    .buttonStyle(.borderless)
+                    .accessibilityIdentifier(AccessibilityID.Finder.clarifyAnswer(index))
+                }
+            }
+
+            Button("Not now", action: onDismiss)
+                .font(Theme.captionFont)
+                .tint(Theme.muted)
+                .buttonStyle(.borderless)
+                .accessibilityIdentifier(AccessibilityID.Finder.clarifyDismiss)
+        }
+        .padding(.vertical, 4)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier(AccessibilityID.Finder.clarify)
+    }
+}
+
+/// Empty results that name the limiting chip and offer to loosen it in one tap.
+struct FinderNoMatchesView: View {
+    let relaxation: FinderRelaxation?
+    var onRelax: (FinderRelaxation) -> Void
+
+    var body: some View {
+        ContentUnavailableView {
+            Label("No matches", systemImage: "eye.slash")
+        } description: {
+            Text(relaxation?.message ?? "Nothing matches every chip. Tap a chip above to change it, or clear the search to browse everyone.")
+        } actions: {
+            if let relaxation {
+                Button(relaxation.actionTitle) {
+                    onRelax(relaxation)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(Theme.teal)
+                .accessibilityHint("Shows \(relaxation.resultCount == 1 ? "1 match" : "\(relaxation.resultCount) matches").")
+                .accessibilityIdentifier(AccessibilityID.Finder.relax)
             }
         }
     }

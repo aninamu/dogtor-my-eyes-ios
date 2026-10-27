@@ -10,6 +10,11 @@ struct BrowseView: View {
         featureFlags.isEnabled(.phase1Finder)
     }
 
+    private var announcementKey: FinderAnnouncementKey? {
+        guard finderEnabled, finder.phase == .ready else { return nil }
+        return FinderAnnouncementKey(parseCount: finder.parseCount, resultIDs: finder.results(from: store.providers).map(\.id))
+    }
+
     var body: some View {
         @Bindable var store = store
         @Bindable var finder = finder
@@ -22,6 +27,13 @@ struct BrowseView: View {
                     classicSections
                 }
             }
+            .onChange(of: announcementKey) { old, new in
+                guard let new else { return }
+                let isNewParse = old?.parseCount != new.parseCount
+                if let text = finder.announcement(matchCount: new.resultIDs.count, isNewParse: isNewParse) {
+                    AccessibilityNotification.Announcement(text).post()
+                }
+            }
             .navigationTitle("Dogtor My Eyes")
             .navigationDestination(for: String.self) { id in
                 if let provider = store.provider(id: id) {
@@ -30,7 +42,8 @@ struct BrowseView: View {
                     ContentUnavailableView("Provider not found", systemImage: "questionmark.circle")
                 }
             }
-            .searchable(text: $store.searchText, prompt: "Name, breed, or specialty")
+            // The finder bar is the only search field when the finder is on; it falls back to keyword search.
+            .modifier(ClassicSearch(isEnabled: !finderEnabled, text: $store.searchText))
             .safeAreaInset(edge: .top, spacing: 0) {
                 if finderEnabled {
                     FinderSearchBar(
@@ -81,7 +94,9 @@ struct BrowseView: View {
 
             Section {
                 UnderstoodChipsRow(finder: finder, areas: store.knownAreas)
-                if finder.filters.confidence == .notSure {
+                if let question = finder.clarifyQuestion {
+                    ClarifyPrompt(question: question, onAnswer: finder.answer, onDismiss: finder.dismissClarify)
+                } else if finder.filters.confidence == .notSure {
                     FinderStatusView(kind: .notSure)
                 }
                 if finder.usedBasicMatching, finder.fallbackReason != .disabled {
@@ -104,11 +119,7 @@ struct BrowseView: View {
                     description: Text(loadError)
                 )
             } else if matches.isEmpty {
-                ContentUnavailableView(
-                    "No providers match",
-                    systemImage: "eye.slash",
-                    description: Text("Tap a chip above to widen your search, or clear it to browse everyone.")
-                )
+                FinderNoMatchesView(relaxation: finder.relaxation(for: store.providers), onRelax: finder.relax)
             } else {
                 ForEach(matches) { match in
                     NavigationLink(value: match.provider.id) {
@@ -224,6 +235,25 @@ struct BrowseView: View {
         } header: {
             Text("\(providers.count) providers")
                 .accessibilityIdentifier(AccessibilityID.Browse.resultsHeader)
+        }
+    }
+}
+
+struct FinderAnnouncementKey: Equatable {
+    let parseCount: Int
+    let resultIDs: [String]
+}
+
+private struct ClassicSearch: ViewModifier {
+    let isEnabled: Bool
+    @Binding var text: String
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if isEnabled {
+            content.searchable(text: $text, prompt: "Name, breed, or specialty")
+        } else {
+            content
         }
     }
 }
