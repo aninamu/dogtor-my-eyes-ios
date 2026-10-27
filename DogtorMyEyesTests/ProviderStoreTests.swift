@@ -108,6 +108,83 @@ final class ProviderStoreTests: XCTestCase {
         XCTAssertTrue(store.favoriteProviders.isEmpty)
     }
 
+    func testRequestAppointmentAppends() {
+        let store = ProviderStore(providers: sampleProviders, selectedPlan: .vsp)
+        let first = sampleProviders[0]
+        let second = sampleProviders[1]
+        let slotA = Date(timeIntervalSince1970: 1_800_000_000)
+        let slotB = Date(timeIntervalSince1970: 1_800_086_400)
+        let slotC = Date(timeIntervalSince1970: 1_800_172_800)
+
+        store.requestAppointment(with: first, slot: slotA, plan: .vsp)
+        store.requestAppointment(with: first, slot: slotB, plan: .eyeMed)
+        store.requestAppointment(with: second, slot: slotC, plan: .davis)
+
+        XCTAssertEqual(store.appointments.count, 3)
+        XCTAssertEqual(store.appointments.map(\.providerID), [first.id, first.id, second.id])
+        XCTAssertEqual(store.appointments.map(\.slot), [slotA, slotB, slotC])
+        XCTAssertEqual(store.appointments.map(\.plan), [.vsp, .eyeMed, .davis])
+        XCTAssertTrue(store.appointments.allSatisfy { $0.status == .requested })
+    }
+
+    func testUpcomingAndPastSorting() {
+        let store = ProviderStore(providers: sampleProviders, selectedPlan: .vsp)
+        let provider = sampleProviders[0]
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let pastEarly = now.addingTimeInterval(-86_400 * 2)
+        let pastLate = now.addingTimeInterval(-86_400)
+        let upcomingSoon = now.addingTimeInterval(86_400)
+        let upcomingLater = now.addingTimeInterval(86_400 * 3)
+
+        store.requestAppointment(with: provider, slot: upcomingLater, plan: .vsp)
+        store.requestAppointment(with: provider, slot: pastLate, plan: .vsp)
+        store.requestAppointment(with: provider, slot: upcomingSoon, plan: .vsp)
+        store.requestAppointment(with: provider, slot: pastEarly, plan: .vsp)
+        store.requestAppointment(with: provider, slot: now, plan: .vsp)
+
+        let upcoming = store.upcomingAppointments(now: now)
+        let past = store.pastAppointments(now: now)
+
+        XCTAssertEqual(upcoming.map(\.slot), [now, upcomingSoon, upcomingLater])
+        XCTAssertEqual(past.map(\.slot), [pastLate, pastEarly])
+
+        let upcomingIDs = Set(upcoming.map(\.id))
+        let pastIDs = Set(past.map(\.id))
+        XCTAssertTrue(upcomingIDs.isDisjoint(with: pastIDs))
+        XCTAssertEqual(upcomingIDs.union(pastIDs).count, store.appointments.count)
+    }
+
+    func testAppointmentsPersistAndReload() throws {
+        let suiteName = "DogtorMyEyesTests.\(UUID().uuidString)"
+        guard let defaults = UserDefaults(suiteName: suiteName) else {
+            XCTFail("Could not create UserDefaults suite")
+            return
+        }
+        defaults.removePersistentDomain(forName: suiteName)
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let provider = sampleProviders[0]
+        let slot = Date(timeIntervalSince1970: 1_800_000_000)
+        let first = ProviderStore(userDefaults: defaults, bundle: Bundle(for: ProviderStoreTests.self))
+        first.requestAppointment(with: provider, slot: slot, plan: .eyeMed)
+
+        let saved = try XCTUnwrap(first.appointments.first)
+        let second = ProviderStore(userDefaults: defaults, bundle: Bundle(for: ProviderStoreTests.self))
+        let loaded = try XCTUnwrap(second.appointments.first)
+
+        XCTAssertEqual(second.appointments.count, 1)
+        XCTAssertEqual(loaded.id, saved.id)
+        XCTAssertEqual(loaded.providerID, provider.id)
+        XCTAssertEqual(loaded.slot.timeIntervalSince1970, slot.timeIntervalSince1970, accuracy: 1)
+        XCTAssertEqual(loaded.plan, .eyeMed)
+        XCTAssertEqual(loaded.status, .requested)
+        XCTAssertEqual(
+            loaded.requestedAt.timeIntervalSince1970,
+            saved.requestedAt.timeIntervalSince1970,
+            accuracy: 1
+        )
+    }
+
     func testBundledProvidersJSONDecodes() throws {
         let bundle = Bundle(for: ProviderStoreTests.self)
         let url = bundle.url(forResource: "providers", withExtension: "json")
