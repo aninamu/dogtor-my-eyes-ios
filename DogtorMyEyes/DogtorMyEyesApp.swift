@@ -2,14 +2,26 @@ import SwiftUI
 
 @main
 struct DogtorMyEyesApp: App {
+    private let featureFlags: FeatureFlags
     @State private var store = ProviderStore()
     @State private var appointments = AppointmentStore()
+    @State private var finder: FinderModel
+    @State private var connectivity = ConnectivityMonitor()
+
+    init() {
+        let flags = FeatureFlags()
+        featureFlags = flags
+        _finder = State(initialValue: FinderModel(parser: FinderParserFactory.make(flags: flags)))
+    }
 
     var body: some Scene {
         WindowGroup {
             ContentView()
                 .environment(store)
                 .environment(appointments)
+                .environment(finder)
+                .environment(connectivity)
+                .environment(\.featureFlags, featureFlags)
         }
     }
 }
@@ -52,4 +64,6 @@ struct ContentView: View {
     ContentView()
         .environment(ProviderStore())
         .environment(AppointmentStore(userDefaults: nil))
+        .environment(FinderModel(parser: ResilientFinderParser(primary: nil)))
+        .environment(ConnectivityMonitor())
 }

@@ -30,6 +30,21 @@ enum AccessibilityID {
         static let error = "booking.error"
     }
 
+    enum Finder {
+        static let searchField = "finder.searchField"
+        static let clear = "finder.clear"
+        static let retry = "finder.retry"
+        static let status = "finder.status"
+        static let triageNotice = "finder.triageNotice"
+        static let resultsHeader = "finder.resultsHeader"
+        static func chip(_ name: String) -> String { "finder.chip.\(name)" }
+        static let clarify = "finder.clarify"
+        static let clarifyDismiss = "finder.clarify.dismiss"
+        static func clarifyAnswer(_ index: Int) -> String { "finder.clarify.answer.\(index)" }
+        static let relax = "finder.relax"
+        static func matchReason(_ providerID: String) -> String { "finder.reason.\(providerID)" }
+    }
+
     enum Appointments {
         static let list = "appointments.list"
         static let emptyBrowse = "appointments.empty.browse"

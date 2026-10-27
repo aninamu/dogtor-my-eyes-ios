@@ -171,7 +171,7 @@ private struct FlowWrap: View {
     let items: [String]
 
     var body: some View {
-        FlexibleChipLayout(spacing: 8) {
+        FlowLayout(spacing: 8) {
             ForEach(items, id: \.self) { item in
                 Text(item)
                     .font(Theme.captionFont.weight(.semibold))
@@ -181,49 +181,6 @@ private struct FlowWrap: View {
                     .foregroundStyle(Theme.deepTeal)
             }
         }
-    }
-}
-
-private struct FlexibleChipLayout: Layout {
-    var spacing: CGFloat = 8
-
-    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-        let result = arrange(proposal: proposal, subviews: subviews)
-        return result.size
-    }
-
-    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        let result = arrange(proposal: proposal, subviews: subviews)
-        for (index, frame) in result.frames.enumerated() {
-            subviews[index].place(
-                at: CGPoint(x: bounds.minX + frame.minX, y: bounds.minY + frame.minY),
-                proposal: ProposedViewSize(frame.size)
-            )
-        }
-    }
-
-    private func arrange(proposal: ProposedViewSize, subviews: Subviews) -> (size: CGSize, frames: [CGRect]) {
-        let maxWidth = proposal.width ?? .infinity
-        var frames: [CGRect] = []
-        var x: CGFloat = 0
-        var y: CGFloat = 0
-        var rowHeight: CGFloat = 0
-        var widthUsed: CGFloat = 0
-
-        for subview in subviews {
-            let size = subview.sizeThatFits(.unspecified)
-            if x + size.width > maxWidth, x > 0 {
-                x = 0
-                y += rowHeight + spacing
-                rowHeight = 0
-            }
-            frames.append(CGRect(origin: CGPoint(x: x, y: y), size: size))
-            rowHeight = max(rowHeight, size.height)
-            x += size.width + spacing
-            widthUsed = max(widthUsed, x - spacing)
-        }
-
-        return (CGSize(width: widthUsed, height: y + rowHeight), frames)
     }
 }
 

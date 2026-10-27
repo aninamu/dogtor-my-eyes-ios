@@ -140,6 +140,8 @@ struct Provider: Identifiable, Hashable {
     let rating: Double
     let reviewCount: Int
     let distanceMiles: Double
+    /// Borough or neighborhood used by the finder's "Near" filter.
+    let area: String
     let bio: String
     let services: [String]
     let timeZone: TimeZone
@@ -157,6 +159,7 @@ struct Provider: Identifiable, Hashable {
         rating: Double,
         reviewCount: Int,
         distanceMiles: Double,
+        area: String = "",
         bio: String,
         services: [String],
         timeZone: TimeZone = Provider.defaultClinicTimeZone,
@@ -172,6 +175,7 @@ struct Provider: Identifiable, Hashable {
         self.rating = rating
         self.reviewCount = reviewCount
         self.distanceMiles = distanceMiles
+        self.area = area
         self.bio = bio
         self.services = services
         self.timeZone = timeZone

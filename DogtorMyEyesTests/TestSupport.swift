@@ -18,6 +18,7 @@ enum Fixtures {
         rating: Double = 4.5,
         reviewCount: Int = 10,
         distance: Double = 1.0,
+        area: String = "Brooklyn",
         slots: [Date]? = nil
     ) -> Provider {
         Provider(
@@ -30,6 +31,7 @@ enum Fixtures {
             rating: rating,
             reviewCount: reviewCount,
             distanceMiles: distance,
+            area: area,
             bio: "Fictional test dogtor",
             services: ["Exam"],
             timeZone: newYork,

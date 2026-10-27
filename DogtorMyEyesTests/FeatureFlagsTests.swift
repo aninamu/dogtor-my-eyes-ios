@@ -11,6 +11,13 @@ final class FeatureFlagsTests: XCTestCase {
         #endif
     }
 
+    func testOnDeviceModelIsAllowedByDefaultAndCanBeForcedOff() throws {
+        let defaults = try Fixtures.isolatedDefaults()
+
+        XCTAssertTrue(FeatureFlags(defaults: defaults, arguments: []).isEnabled(.finderOnDeviceModel))
+        XCTAssertFalse(FeatureFlags(defaults: defaults, arguments: ["--disable-finderOnDeviceModel"]).isEnabled(.finderOnDeviceModel))
+    }
+
     func testUserDefaultsOverrideDefault() throws {
         let defaults = try Fixtures.isolatedDefaults()
         let flags = FeatureFlags(defaults: defaults, arguments: [])

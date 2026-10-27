@@ -62,6 +62,11 @@ final class ProviderStore {
         return result
     }
 
+    /// Areas present in the catalog; the finder may only filter to one of these.
+    var knownAreas: [String] {
+        Array(Set(providers.map(\.area).filter { !$0.isEmpty })).sorted()
+    }
+
     var favoriteProviders: [Provider] {
         providers
             .filter { favoriteIDs.contains($0.id) }
