@@ -1,0 +1,12 @@
+---
+description: Project-wide Swift conventions for Dogtor My Eyes
+alwaysApply: true
+---
+
+# Swift style
+
+- Prefer `@Observable` classes over `ObservableObject` / `@Published`.
+- No force unwraps (`!`) outside tests. Use `guard let`, `if let`, or `??`.
+- Keep view models thin: filtering and persistence live in `ProviderStore`, not in views.
+- Match existing naming: `displayName`, `systemImage`, `isInNetwork(for:)`.
+- Do not add third-party SPM packages without an explicit ask.

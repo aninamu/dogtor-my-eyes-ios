@@ -1,0 +1,13 @@
+---
+description: SwiftUI view conventions — Theme tokens, shared components, accessibility
+globs: DogtorMyEyes/Views/**/*.swift
+alwaysApply: false
+---
+
+# SwiftUI views
+
+- Colors/fonts: use `Theme.teal`, `Theme.sand`, `Theme.ink`, `Theme.muted`, `Theme.titleFont`, etc. Do not invent `Color(red:...)` or system fonts in views.
+- Reuse `NetworkBadge` and `ProviderAvatar` from `Theme.swift`.
+- Icon-only controls need `.accessibilityLabel(...)`.
+- Prefer `NavigationStack` + `List`/`ScrollView` patterns already used in `BrowseView` and `FavoritesView`.
+- Keep booking UI in `BookingSheet`; do not invent a new booking flow elsewhere.

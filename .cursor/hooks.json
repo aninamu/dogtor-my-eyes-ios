@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "hooks": {
+    "beforeShellExecution": [
+      {
+        "command": ".cursor/hooks/guard-shell.sh",
+        "failClosed": true
+      }
+    ],
+    "afterFileEdit": [
+      {
+        "command": ".cursor/hooks/format-swift.sh"
+      }
+    ],
+    "stop": [
+      {
+        "command": ".cursor/hooks/verify-fixtures.sh",
+        "loop_limit": 2
+      }
+    ]
+  }
+}

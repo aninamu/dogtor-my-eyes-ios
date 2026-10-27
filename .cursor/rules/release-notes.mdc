@@ -1,0 +1,30 @@
+---
+alwaysApply: false
+---
+
+# App Store release notes
+
+Manual rule — invoke with `@release-notes`.
+
+Turn recent commits into App Store "What's New" copy.
+
+## Process
+
+1. Run `git log --oneline -20` (and `git log <prev-tag>..HEAD` if a tag exists).
+2. Group user-visible changes only. Skip internal refactors, CI, Cursor config.
+3. Write 3–6 short bullets in the playful dogtor voice (warm, clear, not corporate).
+4. Cap at ~400 characters total.
+
+## Template
+
+```
+What's New
+• <benefit-focused bullet>
+• <benefit-focused bullet>
+• <benefit-focused bullet>
+```
+
+## Example tone
+
+- Good: "Find pediatric pup specialists faster with breed search."
+- Bad: "Refactored ProviderStore filteredProviders sort comparator."

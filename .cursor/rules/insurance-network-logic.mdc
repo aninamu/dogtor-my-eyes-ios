@@ -1,0 +1,29 @@
+---
+description: In-network insurance semantics and filter/sort parity between ProviderStore and verify_provider_logic.py. Use when editing filtering, specialties, plans, or provider fixtures.
+alwaysApply: false
+---
+
+# Insurance / in-network logic
+
+## Semantics
+
+- `InsurancePlan.outOfPocket` is **always** in-network (`Provider.isInNetwork` returns `true`).
+- For any other plan, in-network means `acceptedPlans.contains(plan)`.
+- Default browse mode: `inNetworkOnly = true`, plan = VSP.
+
+## Dual implementation
+
+`ProviderStore.filteredProviders` (Swift) and `scripts/verify_provider_logic.py` (Python) must stay behaviorally identical for:
+
+- in-network filter
+- specialty filter
+- name/breed/specialty search
+- sort by distance or rating (rating ties break on higher `reviewCount`)
+
+When you change one, change the other in the same edit and run:
+
+```bash
+python3 scripts/verify_provider_logic.py
+```
+
+Also update `DogtorMyEyesTests/ProviderStoreTests.swift` for any new branch.
