@@ -80,6 +80,23 @@ struct ResilientFinderParser: Sendable {
         if merged.triage == .urgent {
             merged.urgency = .asap
         }
+
+        // A value is confirmed only when the deterministic rules found it outright; anything the model
+        // supplied on its own is shown as a guess.
+        func status(_ slot: FinderSlot, agreesWithRules: Bool, isSet: Bool) -> Bool {
+            guard isSet else { return false }
+            return agreesWithRules ? rules.guessed.contains(slot) : true
+        }
+        let nearMatchesRules = merged.area == rules.area && merged.maxDistanceMiles == rules.maxDistanceMiles
+        let urgencyIsSafetyDriven = merged.triage == .urgent
+        let flags: [(FinderSlot, Bool)] = [
+            (.specialty, status(.specialty, agreesWithRules: merged.specialty == rules.specialty, isSet: merged.specialty != nil)),
+            (.plan, status(.plan, agreesWithRules: merged.plan == rules.plan, isSet: merged.plan != nil)),
+            (.near, status(.near, agreesWithRules: nearMatchesRules, isSet: merged.area != nil || merged.maxDistanceMiles != nil)),
+            (.urgency, !urgencyIsSafetyDriven
+                && status(.urgency, agreesWithRules: merged.urgency == rules.urgency, isSet: merged.urgency != .anyTime)),
+        ]
+        merged.guessed = Set(flags.filter(\.1).map(\.0))
         return merged
     }
 }

@@ -38,7 +38,7 @@ final class FinderEvalTests: XCTestCase {
 
     private static let knownKeys: Set<String> = [
         "specialty", "plan", "planName", "inNetworkOnly", "area", "maxDistanceMiles", "prefersNearby", "urgency", "triage",
-        "confidence",
+        "confidence", "guessed",
     ]
 
     private func loadFixture() throws -> EvalFile {
@@ -59,6 +59,7 @@ final class FinderEvalTests: XCTestCase {
         case "urgency": return .string(filters.urgency.token)
         case "triage": return .string(filters.triage.rawValue)
         case "confidence": return .string(filters.confidence.rawValue)
+        case "guessed": return .string(filters.guessed.map(\.rawValue).sorted().joined(separator: ","))
         default: return .null
         }
     }

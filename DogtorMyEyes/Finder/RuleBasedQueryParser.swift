@@ -15,14 +15,40 @@ struct RuleBasedQueryParser: FinderQueryParser {
         var filters = FinderFilters()
 
         filters.triage = triage(in: text)
-        filters.specialty = specialty(in: text, triage: filters.triage)
-        filters.plan = plan(in: text)
+
+        let specialty = self.specialty(in: text, triage: filters.triage)
+        filters.specialty = specialty?.value
+        let plan = self.plan(in: text)
+        filters.plan = plan?.value
         filters.inNetworkOnly = !text.matchesAny(Vocabulary.outOfNetworkOK)
-        filters.area = area(in: text, knownAreas: knownAreas)
+        let area = self.area(in: text, knownAreas: knownAreas)
+        filters.area = area?.value
         filters.prefersNearby = text.matchesAny(Vocabulary.nearby)
         filters.maxDistanceMiles = maxDistance(in: tokens)
-        filters.urgency = filters.triage == .urgent ? .asap : urgency(in: text)
+        let urgency = filters.triage == .urgent ? nil : self.urgency(in: text)
+        filters.urgency = filters.triage == .urgent ? .asap : (urgency?.value ?? .anyTime)
+
+        if specialty?.guessed == true { filters.guessed.insert(.specialty) }
+        if plan?.guessed == true { filters.guessed.insert(.plan) }
+        if area?.guessed == true { filters.guessed.insert(.near) }
+        if urgency?.guessed == true { filters.guessed.insert(.urgency) }
         return filters
+    }
+
+    /// A parsed value plus whether it was inferred or typo-corrected rather than stated outright.
+    private struct Understood<Value> {
+        let value: Value
+        let guessed: Bool
+
+        init(_ value: Value, _ quality: MatchQuality) {
+            self.value = value
+            guessed = quality == .fuzzy
+        }
+
+        init(inferred value: Value) {
+            self.value = value
+            guessed = true
+        }
     }
 
     // MARK: - Fields
@@ -36,33 +62,41 @@ struct RuleBasedQueryParser: FinderQueryParser {
         return .none
     }
 
-    private func specialty(in text: TokenText, triage: Triage) -> Specialty? {
-        if text.matchesAny(Vocabulary.lasik) { return .lasikConsult }
-        if text.matchesAny(Vocabulary.framesAndContacts) { return .contactsAndFrames }
-        if text.matchesAny(Vocabulary.pediatric) { return .pediatric }
-        if text.matchesAny(Vocabulary.ophthalmology) || triage != .none { return .ophthalmology }
-        if text.matchesAny(Vocabulary.optometry) { return .optometry }
+    private func specialty(in text: TokenText, triage: Triage) -> Understood<Specialty>? {
+        let explicit: [(Specialty, [Pattern])] = [
+            (.lasikConsult, Vocabulary.lasik),
+            (.contactsAndFrames, Vocabulary.framesAndContacts),
+            (.pediatric, Vocabulary.pediatric),
+            (.ophthalmology, Vocabulary.ophthalmology),
+        ]
+        for (specialty, patterns) in explicit {
+            if let quality = text.bestMatch(patterns) { return Understood(specialty, quality) }
+        }
+        // A symptom suggests ophthalmology, but the user didn't ask for it, so it's a guess.
+        if triage != .none { return Understood(inferred: .ophthalmology) }
+        if let quality = text.bestMatch(Vocabulary.optometry) { return Understood(.optometry, quality) }
         return nil
     }
 
-    private func plan(in text: TokenText) -> PlanUnderstanding? {
-        for (plan, patterns) in Vocabulary.plans where text.matchesAny(patterns) {
-            return .coverage(.insurance(plan))
+    private func plan(in text: TokenText) -> Understood<PlanUnderstanding>? {
+        for (plan, patterns) in Vocabulary.plans {
+            if let quality = text.bestMatch(patterns) { return Understood(.coverage(.insurance(plan)), quality) }
         }
-        for (name, patterns) in Vocabulary.unsupportedPlans where text.matchesAny(patterns) {
-            return .unsupported(name)
+        for (name, patterns) in Vocabulary.unsupportedPlans {
+            if let quality = text.bestMatch(patterns) { return Understood(.unsupported(name), quality) }
         }
-        if text.matchesAny(Vocabulary.selfPay) { return .coverage(.selfPay) }
+        if let quality = text.bestMatch(Vocabulary.selfPay) { return Understood(.coverage(.selfPay), quality) }
         return nil
     }
 
-    private func area(in text: TokenText, knownAreas: [String]) -> String? {
-        for area in knownAreas where text.matches(Pattern(area)) {
-            return area
+    private func area(in text: TokenText, knownAreas: [String]) -> Understood<String>? {
+        for area in knownAreas {
+            if let quality = text.bestMatch([Pattern(area)]) { return Understood(area, quality) }
         }
-        for (alias, borough) in Vocabulary.areaAliases where text.matches(Pattern(alias)) {
+        for (alias, borough) in Vocabulary.areaAliases {
+            guard let quality = text.bestMatch([Pattern(alias)]) else { continue }
             if let known = knownAreas.first(where: { $0.caseInsensitiveCompare(borough) == .orderedSame }) {
-                return known
+                return Understood(known, quality)
             }
         }
         return nil
@@ -80,15 +114,17 @@ struct RuleBasedQueryParser: FinderQueryParser {
         return nil
     }
 
-    private func urgency(in text: TokenText) -> FinderUrgency {
-        if text.matchesAny(Vocabulary.asap) { return .asap }
-        if text.matchesAny(Vocabulary.today) { return .today }
-        if text.matchesAny(Vocabulary.tomorrow) { return .tomorrow }
-        if text.matchesAny(Vocabulary.weekend) { return .weekend }
-        for (weekday, patterns) in Vocabulary.weekdays where text.matchesAny(patterns) {
-            return .weekday(weekday)
+    private func urgency(in text: TokenText) -> Understood<FinderUrgency>? {
+        let options: [(FinderUrgency, [Pattern])] = [
+            (.asap, Vocabulary.asap),
+            (.today, Vocabulary.today),
+            (.tomorrow, Vocabulary.tomorrow),
+            (.weekend, Vocabulary.weekend),
+        ] + Vocabulary.weekdays.map { (FinderUrgency.weekday($0.0), $0.1) }
+        for (urgency, patterns) in options {
+            if let quality = text.bestMatch(patterns) { return Understood(urgency, quality) }
         }
-        return .anyTime
+        return nil
     }
 
     // MARK: - Tokenizing
@@ -154,37 +190,60 @@ struct Pattern {
     }
 }
 
+enum MatchQuality: Comparable {
+    case fuzzy
+    case exact
+}
+
 struct TokenText {
     let tokens: [String]
 
     func matchesAny(_ patterns: [Pattern]) -> Bool {
-        patterns.contains(where: matches)
+        bestMatch(patterns) != nil
     }
 
     func matches(_ pattern: Pattern) -> Bool {
+        match(pattern) != nil
+    }
+
+    /// `.exact` if any pattern matches without typo correction, `.fuzzy` if only corrected matches exist.
+    func bestMatch(_ patterns: [Pattern]) -> MatchQuality? {
+        var best: MatchQuality?
+        for pattern in patterns {
+            guard let quality = match(pattern) else { continue }
+            if quality == .exact { return .exact }
+            best = quality
+        }
+        return best
+    }
+
+    private func match(_ pattern: Pattern) -> MatchQuality? {
         let count = pattern.words.count
-        guard count > 0, tokens.count >= count else { return false }
+        guard count > 0, tokens.count >= count else { return nil }
+        var best: MatchQuality?
         for start in 0...(tokens.count - count) {
             let window = tokens[start..<(start + count)]
-            if zip(window, pattern.words).allSatisfy({ Self.matches(token: $0, word: $1) }) {
-                return true
-            }
+            let qualities = zip(window, pattern.words).map { Self.match(token: $0, word: $1) }
+            guard qualities.allSatisfy({ $0 != nil }) else { continue }
+            let quality: MatchQuality = qualities.contains(.fuzzy) ? .fuzzy : .exact
+            if quality == .exact { return .exact }
+            best = quality
         }
-        return false
+        return best
     }
 
     /// Typos are tolerated only on longer words, where a one- or two-letter slip can't plausibly be a different word.
-    private static func matches(token: String, word: Pattern.Word) -> Bool {
+    private static func match(token: String, word: Pattern.Word) -> MatchQuality? {
         switch word {
         case .exact(let word):
-            if token == word { return true }
-            guard word.count >= 6, token.count >= 5 else { return false }
-            return editDistance(token, word) <= allowedEdits(for: word)
+            if token == word { return .exact }
+            guard word.count >= 6, token.count >= 5 else { return nil }
+            return editDistance(token, word) <= allowedEdits(for: word) ? .fuzzy : nil
         case .prefix(let stem):
-            if token.hasPrefix(stem) { return true }
-            guard stem.count >= 6, token.count >= stem.count - 1 else { return false }
+            if token.hasPrefix(stem) { return .exact }
+            guard stem.count >= 6, token.count >= stem.count - 1 else { return nil }
             let lengths = (stem.count - 1)...(stem.count + 1)
-            return lengths.contains { editDistance(String(token.prefix($0)), stem) <= 1 }
+            return lengths.contains { editDistance(String(token.prefix($0)), stem) <= 1 } ? .fuzzy : nil
         }
     }
 

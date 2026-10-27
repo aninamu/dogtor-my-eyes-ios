@@ -108,6 +108,23 @@ enum FinderConfidence: String, Hashable, Sendable {
     case notSure
 }
 
+/// One of the four understood chips.
+enum FinderSlot: String, CaseIterable, Hashable, Sendable {
+    case specialty
+    case plan
+    case near
+    case urgency
+
+    var displayName: String {
+        switch self {
+        case .specialty: return "Specialty"
+        case .plan: return "Plan"
+        case .near: return "Near"
+        case .urgency: return "Urgency"
+        }
+    }
+}
+
 /// Structured filter values understood from a query. This is the only thing a parser may produce:
 /// providers, coverage, and openings always come from the catalog.
 struct FinderFilters: Hashable, Sendable {
@@ -119,6 +136,8 @@ struct FinderFilters: Hashable, Sendable {
     var prefersNearby: Bool = false
     var urgency: FinderUrgency = .anyTime
     var triage: Triage = .none
+    /// Slots whose value was inferred or typo-corrected rather than stated. Shown as dashed "guessed" chips.
+    var guessed: Set<FinderSlot> = []
 
     var hasNearPreference: Bool {
         area != nil || maxDistanceMiles != nil || prefersNearby
