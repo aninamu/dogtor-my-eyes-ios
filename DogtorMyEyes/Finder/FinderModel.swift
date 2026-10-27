@@ -29,6 +29,8 @@ final class FinderModel {
     @ObservationIgnored private let parser: ResilientFinderParser
     @ObservationIgnored private var generation = 0
     @ObservationIgnored private var submittedQuery = ""
+    /// Set from the original parse so later chip edits don't switch name/breed keyword search off.
+    @ObservationIgnored private var usesKeywordSearch = false
 
     init(parser: ResilientFinderParser) {
         self.parser = parser
@@ -55,6 +57,7 @@ final class FinderModel {
             let result = try await parser.parse(text, context: FinderParseContext(knownAreas: knownAreas, now: now))
             guard current == generation else { return }
             filters = result.filters
+            usesKeywordSearch = result.filters.confidence == .notSure
             if let understood = result.filters.plan {
                 plan = understood
                 planFromSettings = false
@@ -82,6 +85,7 @@ final class FinderModel {
         generation += 1
         query = ""
         submittedQuery = ""
+        usesKeywordSearch = false
         filters = FinderFilters()
         plan = nil
         planFromSettings = false
@@ -145,20 +149,20 @@ final class FinderModel {
 
     func results(from providers: [Provider], now: Date = .now) -> [FinderMatch] {
         guard phase == .ready else { return [] }
-        var pool = providers
-        var hits: [String: String] = [:]
-        if filters.confidence == .notSure {
-            hits = FinderRanker.keywordHits(in: providers, query: submittedQuery)
-            if !hits.isEmpty {
-                pool = providers.filter { hits[$0.id] != nil }
-            }
-        }
+        let (pool, hits) = keywordPool(from: providers)
         return FinderRanker.rank(pool, filters: filters, plan: plan, now: now, keywordHits: hits)
     }
 
     func relaxation(for providers: [Provider]) -> FinderRelaxation? {
         guard phase == .ready else { return nil }
-        return FinderRanker.relaxation(for: providers, filters: filters, plan: plan)
+        return FinderRanker.relaxation(for: keywordPool(from: providers).pool, filters: filters, plan: plan)
+    }
+
+    private func keywordPool(from providers: [Provider]) -> (pool: [Provider], hits: [String: String]) {
+        guard usesKeywordSearch else { return (providers, [:]) }
+        let hits = FinderRanker.keywordHits(in: providers, query: submittedQuery)
+        guard !hits.isEmpty else { return (providers, hits) }
+        return (providers.filter { hits[$0.id] != nil }, hits)
     }
 
     func relax(_ relaxation: FinderRelaxation) {
