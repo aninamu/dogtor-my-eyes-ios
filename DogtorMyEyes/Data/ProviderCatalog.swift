@@ -34,6 +34,7 @@ struct ProviderRecord: Decodable {
     let rating: Double
     let reviewCount: Int
     let distanceMiles: Double
+    let area: String
     let bio: String
     let services: [String]
     let timeZoneIdentifier: String?
@@ -43,7 +44,7 @@ struct ProviderRecord: Decodable {
 
     private enum CodingKeys: String, CodingKey {
         case id, name, breed, specialty, acceptedPlans, acceptsSelfPay, rating, reviewCount
-        case distanceMiles, bio, services, timeZone, slotTemplates, avatarColor
+        case distanceMiles, area, bio, services, timeZone, slotTemplates, avatarColor
     }
 
     init(from decoder: Decoder) throws {
@@ -56,6 +57,7 @@ struct ProviderRecord: Decodable {
         reviewCount = try container.decode(Int.self, forKey: .reviewCount)
         distanceMiles = try container.decode(Double.self, forKey: .distanceMiles)
         acceptsSelfPay = try container.decodeIfPresent(Bool.self, forKey: .acceptsSelfPay) ?? true
+        area = try container.decodeIfPresent(String.self, forKey: .area) ?? ""
         bio = try container.decodeIfPresent(String.self, forKey: .bio) ?? ""
         services = try container.decodeIfPresent([String].self, forKey: .services) ?? []
         timeZoneIdentifier = try container.decodeIfPresent(String.self, forKey: .timeZone)
@@ -80,6 +82,7 @@ struct ProviderRecord: Decodable {
             rating: rating,
             reviewCount: reviewCount,
             distanceMiles: distanceMiles,
+            area: area,
             bio: bio,
             services: services,
             timeZone: timeZone,
