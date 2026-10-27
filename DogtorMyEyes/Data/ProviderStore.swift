@@ -10,26 +10,28 @@ final class ProviderStore {
     var selectedSpecialty: Specialty?
     var inNetworkOnly = true
     var sort: ProviderSort = .distance
-    var selectedPlanRaw: String = InsurancePlan.vsp.rawValue {
-        didSet { persistPlan() }
+
+    var coverage: Coverage = .insurance(.vsp) {
+        didSet { defaults?.set(coverage.rawValue, forKey: Self.coverageKey) }
     }
 
     var favoriteIDs: Set<String> = [] {
-        didSet { persistFavorites() }
+        didSet { defaults?.set(Array(favoriteIDs).sorted(), forKey: Self.favoritesKey) }
     }
 
-    var selectedPlan: InsurancePlan {
-        get { InsurancePlan(rawValue: selectedPlanRaw) ?? .vsp }
-        set { selectedPlanRaw = newValue.rawValue }
-    }
-
-    private let persistenceEnabled: Bool
+    /// `nil` disables persistence entirely; otherwise every read and write goes through this instance.
+    @ObservationIgnored private let defaults: UserDefaults?
 
     var filteredProviders: [Provider] {
         var result = providers
 
-        if inNetworkOnly {
-            result = result.filter { $0.isInNetwork(for: selectedPlan) }
+        switch coverage {
+        case .selfPay:
+            result = result.filter(\.acceptsSelfPay)
+        case .insurance(let plan):
+            if inNetworkOnly {
+                result = result.filter { $0.isInNetwork(for: plan) }
+            }
         }
 
         if let specialty = selectedSpecialty {
@@ -66,21 +68,20 @@ final class ProviderStore {
             .sorted { $0.name < $1.name }
     }
 
-    init(userDefaults: UserDefaults = .standard, bundle: Bundle = .main) {
-        persistenceEnabled = true
-        selectedPlanRaw = userDefaults.string(forKey: Self.planKey) ?? InsurancePlan.vsp.rawValue
-        if let saved = userDefaults.array(forKey: Self.favoritesKey) as? [String] {
-            favoriteIDs = Set(saved)
-        }
-        loadProviders(from: bundle)
+    convenience init(userDefaults: UserDefaults = .standard, bundle: Bundle = .main, now: Date = .now) {
+        let catalog = ProviderCatalog.load(from: bundle, now: now)
+        self.init(providers: catalog.providers, loadError: catalog.errorMessage, userDefaults: userDefaults)
     }
 
-    /// Test-friendly initializer that skips disk I/O and UserDefaults writes.
-    init(providers: [Provider], selectedPlan: InsurancePlan = .vsp, favoriteIDs: Set<String> = []) {
-        persistenceEnabled = false
+    /// Pass `userDefaults: nil` (the default) for an in-memory store with no persistence.
+    init(providers: [Provider], loadError: String? = nil, userDefaults: UserDefaults? = nil) {
+        defaults = userDefaults
         self.providers = providers
-        self.selectedPlanRaw = selectedPlan.rawValue
-        self.favoriteIDs = favoriteIDs
+        self.loadError = loadError
+        if let userDefaults {
+            coverage = userDefaults.string(forKey: Self.coverageKey).flatMap(Coverage.init(rawValue:)) ?? .insurance(.vsp)
+            favoriteIDs = Set(userDefaults.stringArray(forKey: Self.favoritesKey) ?? [])
+        }
     }
 
     func isFavorite(_ provider: Provider) -> Bool {
@@ -99,36 +100,6 @@ final class ProviderStore {
         providers.first { $0.id == id }
     }
 
-    private func loadProviders(from bundle: Bundle) {
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
-
-        guard let url = bundle.url(forResource: "providers", withExtension: "json") else {
-            loadError = "Missing providers.json in app bundle."
-            providers = []
-            return
-        }
-
-        do {
-            let data = try Data(contentsOf: url)
-            providers = try decoder.decode([Provider].self, from: data)
-            loadError = nil
-        } catch {
-            loadError = "Could not load providers: \(error.localizedDescription)"
-            providers = []
-        }
-    }
-
-    private func persistPlan() {
-        guard persistenceEnabled else { return }
-        UserDefaults.standard.set(selectedPlanRaw, forKey: Self.planKey)
-    }
-
-    private func persistFavorites() {
-        guard persistenceEnabled else { return }
-        UserDefaults.standard.set(Array(favoriteIDs), forKey: Self.favoritesKey)
-    }
-
-    private static let planKey = "selectedInsurancePlan"
-    private static let favoritesKey = "favoriteProviderIDs"
+    static let coverageKey = "selectedInsurancePlan"
+    static let favoritesKey = "favoriteProviderIDs"
 }

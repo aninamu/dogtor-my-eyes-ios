@@ -1,5 +1,4 @@
 import Foundation
-import SwiftUI
 
 enum Specialty: String, Codable, CaseIterable, Identifiable, Hashable {
     case optometry
@@ -36,7 +35,6 @@ enum InsurancePlan: String, Codable, CaseIterable, Identifiable, Hashable {
     case eyeMed
     case davis
     case spectera
-    case outOfPocket
 
     var id: String { rawValue }
 
@@ -46,9 +44,74 @@ enum InsurancePlan: String, Codable, CaseIterable, Identifiable, Hashable {
         case .eyeMed: return "EyeMed"
         case .davis: return "Davis Vision"
         case .spectera: return "Spectera"
-        case .outOfPocket: return "Out of Pocket"
         }
     }
+}
+
+/// How the user pays. Self-pay is not an insurance network, so it never implies in-network status.
+enum Coverage: Hashable, Identifiable {
+    case insurance(InsurancePlan)
+    case selfPay
+
+    static var allCases: [Coverage] {
+        InsurancePlan.allCases.map(Coverage.insurance) + [.selfPay]
+    }
+
+    init?(rawValue: String) {
+        if let plan = InsurancePlan(rawValue: rawValue) {
+            self = .insurance(plan)
+            return
+        }
+        switch rawValue {
+        // "outOfPocket" is the value stored by builds that modeled self-pay as a plan.
+        case "selfPay", "outOfPocket":
+            self = .selfPay
+        default:
+            return nil
+        }
+    }
+
+    var rawValue: String {
+        switch self {
+        case .insurance(let plan): return plan.rawValue
+        case .selfPay: return "selfPay"
+        }
+    }
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .insurance(let plan): return plan.displayName
+        case .selfPay: return "Self-pay"
+        }
+    }
+
+    var plan: InsurancePlan? {
+        if case .insurance(let plan) = self { return plan }
+        return nil
+    }
+}
+
+extension Coverage: Codable {
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let raw = try container.decode(String.self)
+        guard let coverage = Coverage(rawValue: raw) else {
+            throw DecodingError.dataCorruptedError(in: container, debugDescription: "Unknown coverage \(raw)")
+        }
+        self = coverage
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
+}
+
+enum NetworkStatus: Equatable {
+    case inNetwork
+    case outOfNetwork
 }
 
 enum ProviderSort: String, CaseIterable, Identifiable {
@@ -65,42 +128,79 @@ enum ProviderSort: String, CaseIterable, Identifiable {
     }
 }
 
-struct Provider: Identifiable, Codable, Hashable {
+struct Provider: Identifiable, Hashable {
+    static let defaultClinicTimeZone = TimeZone(identifier: "America/New_York") ?? .current
+
     let id: String
     let name: String
     let breed: String
     let specialty: Specialty
     let acceptedPlans: [InsurancePlan]
+    let acceptsSelfPay: Bool
     let rating: Double
     let reviewCount: Int
     let distanceMiles: Double
     let bio: String
     let services: [String]
-    let nextAvailable: [Date]
+    let timeZone: TimeZone
+    /// Every generated opening, including ones that may have passed since launch. Use `upcomingSlots(after:)` for display.
+    let availableSlots: [Date]
     let avatarColor: String
 
+    init(
+        id: String,
+        name: String,
+        breed: String,
+        specialty: Specialty,
+        acceptedPlans: [InsurancePlan],
+        acceptsSelfPay: Bool = true,
+        rating: Double,
+        reviewCount: Int,
+        distanceMiles: Double,
+        bio: String,
+        services: [String],
+        timeZone: TimeZone = Provider.defaultClinicTimeZone,
+        availableSlots: [Date],
+        avatarColor: String
+    ) {
+        self.id = id
+        self.name = name
+        self.breed = breed
+        self.specialty = specialty
+        self.acceptedPlans = acceptedPlans
+        self.acceptsSelfPay = acceptsSelfPay
+        self.rating = rating
+        self.reviewCount = reviewCount
+        self.distanceMiles = distanceMiles
+        self.bio = bio
+        self.services = services
+        self.timeZone = timeZone
+        self.availableSlots = availableSlots
+        self.avatarColor = avatarColor
+    }
+
     func isInNetwork(for plan: InsurancePlan) -> Bool {
-        if plan == .outOfPocket { return true }
-        return acceptedPlans.contains(plan)
+        acceptedPlans.contains(plan)
     }
 
-    var color: Color {
-        Color(hex: avatarColor) ?? Theme.teal
+    /// `nil` for self-pay: there is no network to be in or out of.
+    func networkStatus(for coverage: Coverage) -> NetworkStatus? {
+        guard let plan = coverage.plan else { return nil }
+        return isInNetwork(for: plan) ? .inNetwork : .outOfNetwork
     }
-}
 
-extension Color {
-    init?(hex: String) {
-        var cleaned = hex.trimmingCharacters(in: .whitespacesAndNewlines)
-        if cleaned.hasPrefix("#") {
-            cleaned.removeFirst()
+    func accepts(_ coverage: Coverage) -> Bool {
+        switch coverage {
+        case .insurance(let plan): return isInNetwork(for: plan)
+        case .selfPay: return acceptsSelfPay
         }
-        guard cleaned.count == 6, let value = UInt64(cleaned, radix: 16) else {
-            return nil
-        }
-        let r = Double((value >> 16) & 0xFF) / 255
-        let g = Double((value >> 8) & 0xFF) / 255
-        let b = Double(value & 0xFF) / 255
-        self.init(red: r, green: g, blue: b)
+    }
+
+    func upcomingSlots(after now: Date) -> [Date] {
+        availableSlots.filter { $0 > now }.sorted()
+    }
+
+    func isBookable(_ slot: Date, now: Date) -> Bool {
+        slot > now && availableSlots.contains(slot)
     }
 }

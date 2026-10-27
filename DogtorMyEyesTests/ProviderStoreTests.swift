@@ -4,48 +4,19 @@ import XCTest
 final class ProviderStoreTests: XCTestCase {
     private var sampleProviders: [Provider] {
         [
-            Provider(
-                id: "in-vsp",
-                name: "Dr. In Network VSP",
-                breed: "Beagle",
-                specialty: .optometry,
-                acceptedPlans: [.vsp, .outOfPocket],
-                rating: 4.5,
-                reviewCount: 10,
-                distanceMiles: 2.0,
-                bio: "VSP dogtor",
-                services: ["Exam"],
-                nextAvailable: [Date()],
-                avatarColor: "C4A35A"
-            ),
-            Provider(
-                id: "in-eyemed",
-                name: "Dr. EyeMed Only",
-                breed: "Poodle",
-                specialty: .ophthalmology,
-                acceptedPlans: [.eyeMed, .outOfPocket],
-                rating: 4.9,
-                reviewCount: 40,
-                distanceMiles: 5.0,
-                bio: "EyeMed dogtor",
-                services: ["Surgery"],
-                nextAvailable: [Date()],
-                avatarColor: "4A6FA5"
-            ),
-            Provider(
+            Fixtures.provider(id: "in-vsp", breed: "Beagle", specialty: .optometry, plans: [.vsp], rating: 4.5, reviewCount: 10, distance: 2.0),
+            Fixtures.provider(id: "in-eyemed", breed: "Poodle", specialty: .ophthalmology, plans: [.eyeMed], rating: 4.9, reviewCount: 40, distance: 5.0),
+            Fixtures.provider(
                 id: "pediatric-both",
                 name: "Dr. Pip Pediatric",
                 breed: "Beagle",
                 specialty: .pediatric,
-                acceptedPlans: [.vsp, .eyeMed, .outOfPocket],
+                plans: [.vsp, .eyeMed],
+                acceptsSelfPay: false,
                 rating: 5.0,
                 reviewCount: 90,
-                distanceMiles: 1.0,
-                bio: "Kids",
-                services: ["Pediatric exam"],
-                nextAvailable: [Date()],
-                avatarColor: "D97757"
-            )
+                distance: 1.0
+            ),
         ]
     }
 
@@ -53,19 +24,20 @@ final class ProviderStoreTests: XCTestCase {
         let provider = sampleProviders[0]
         XCTAssertTrue(provider.isInNetwork(for: .vsp))
         XCTAssertFalse(provider.isInNetwork(for: .eyeMed))
-        XCTAssertTrue(provider.isInNetwork(for: .outOfPocket))
+        XCTAssertEqual(provider.networkStatus(for: .insurance(.vsp)), .inNetwork)
+        XCTAssertEqual(provider.networkStatus(for: .insurance(.eyeMed)), .outOfNetwork)
     }
 
     func testInNetworkOnlyFilter() {
-        let store = ProviderStore(providers: sampleProviders, selectedPlan: .vsp)
+        let store = ProviderStore(providers: sampleProviders)
+        store.coverage = .insurance(.vsp)
         store.inNetworkOnly = true
 
-        let ids = store.filteredProviders.map(\.id)
-        XCTAssertEqual(Set(ids), Set(["in-vsp", "pediatric-both"]))
+        XCTAssertEqual(Set(store.filteredProviders.map(\.id)), Set(["in-vsp", "pediatric-both"]))
     }
 
     func testSpecialtyFilter() {
-        let store = ProviderStore(providers: sampleProviders, selectedPlan: .vsp)
+        let store = ProviderStore(providers: sampleProviders)
         store.inNetworkOnly = false
         store.selectedSpecialty = .ophthalmology
 
@@ -73,7 +45,7 @@ final class ProviderStoreTests: XCTestCase {
     }
 
     func testSearchByBreedAndSpecialty() {
-        let store = ProviderStore(providers: sampleProviders, selectedPlan: .vsp)
+        let store = ProviderStore(providers: sampleProviders)
         store.inNetworkOnly = false
 
         store.searchText = "beagle"
@@ -84,7 +56,7 @@ final class ProviderStoreTests: XCTestCase {
     }
 
     func testSortByDistanceAndRating() {
-        let store = ProviderStore(providers: sampleProviders, selectedPlan: .vsp)
+        let store = ProviderStore(providers: sampleProviders)
         store.inNetworkOnly = false
 
         store.sort = .distance
@@ -95,7 +67,7 @@ final class ProviderStoreTests: XCTestCase {
     }
 
     func testFavoritesToggle() {
-        let store = ProviderStore(providers: sampleProviders, selectedPlan: .vsp)
+        let store = ProviderStore(providers: sampleProviders)
         let provider = sampleProviders[0]
 
         XCTAssertFalse(store.isFavorite(provider))
@@ -108,30 +80,72 @@ final class ProviderStoreTests: XCTestCase {
         XCTAssertTrue(store.favoriteProviders.isEmpty)
     }
 
-    func testBundledProvidersJSONDecodes() throws {
-        let bundle = Bundle(for: ProviderStoreTests.self)
-        let url = bundle.url(forResource: "providers", withExtension: "json")
-            ?? Bundle.main.url(forResource: "providers", withExtension: "json")
+    // MARK: M4 — self-pay is not an insurance network
 
-        // Prefer decoding the app-target fixture from disk next to the sources when running outside the host app bundle.
-        let data: Data
-        if let url {
-            data = try Data(contentsOf: url)
-        } else {
-            let path = URL(fileURLWithPath: #filePath)
-                .deletingLastPathComponent()
-                .deletingLastPathComponent()
-                .appendingPathComponent("DogtorMyEyes/Data/providers.json")
-            data = try Data(contentsOf: path)
+    func testSelfPayNeverReportsNetworkStatus() {
+        for provider in sampleProviders {
+            XCTAssertNil(provider.networkStatus(for: .selfPay))
         }
+    }
 
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
-        let providers = try decoder.decode([Provider].self, from: data)
+    func testSelfPayFiltersBySelfPayAcceptanceRegardlessOfToggle() {
+        let store = ProviderStore(providers: sampleProviders)
+        store.coverage = .selfPay
 
-        XCTAssertEqual(providers.count, 12)
-        XCTAssertTrue(providers.allSatisfy { !$0.name.isEmpty })
-        XCTAssertTrue(providers.contains { $0.specialty == .lasikConsult })
-        XCTAssertTrue(providers.contains { $0.acceptedPlans.contains(.vsp) })
+        store.inNetworkOnly = true
+        XCTAssertEqual(Set(store.filteredProviders.map(\.id)), Set(["in-vsp", "in-eyemed"]))
+        store.inNetworkOnly = false
+        XCTAssertEqual(Set(store.filteredProviders.map(\.id)), Set(["in-vsp", "in-eyemed"]))
+    }
+
+    func testCoverageRawValuesRoundTripAndMigrateLegacyOutOfPocket() {
+        for coverage in Coverage.allCases {
+            XCTAssertEqual(Coverage(rawValue: coverage.rawValue), coverage)
+        }
+        XCTAssertEqual(Coverage(rawValue: "outOfPocket"), .selfPay)
+        XCTAssertNil(Coverage(rawValue: "aetna"))
+        XCTAssertFalse(InsurancePlan.allCases.map(\.rawValue).contains("outOfPocket"))
+    }
+
+    // MARK: M3 — injected UserDefaults is used for reads and writes
+
+    func testInjectedDefaultsReceiveWrites() throws {
+        let defaults = try Fixtures.isolatedDefaults()
+        let store = ProviderStore(providers: sampleProviders, userDefaults: defaults)
+
+        store.coverage = .insurance(.eyeMed)
+        store.toggleFavorite(sampleProviders[1])
+
+        XCTAssertEqual(defaults.string(forKey: ProviderStore.coverageKey), "eyeMed")
+        XCTAssertEqual(defaults.stringArray(forKey: ProviderStore.favoritesKey), ["in-eyemed"])
+    }
+
+    func testPersistedStateIsReadBackByANewStore() throws {
+        let defaults = try Fixtures.isolatedDefaults()
+        let first = ProviderStore(providers: sampleProviders, userDefaults: defaults)
+        first.coverage = .selfPay
+        first.toggleFavorite(sampleProviders[0])
+        first.toggleFavorite(sampleProviders[2])
+
+        let second = ProviderStore(providers: sampleProviders, userDefaults: defaults)
+        XCTAssertEqual(second.coverage, .selfPay)
+        XCTAssertEqual(second.favoriteIDs, ["in-vsp", "pediatric-both"])
+    }
+
+    func testLegacyStoredOutOfPocketLoadsAsSelfPay() throws {
+        let defaults = try Fixtures.isolatedDefaults()
+        defaults.set("outOfPocket", forKey: ProviderStore.coverageKey)
+
+        XCTAssertEqual(ProviderStore(providers: [], userDefaults: defaults).coverage, .selfPay)
+    }
+
+    func testInMemoryStoreDoesNotTouchStandardDefaults() {
+        let key = ProviderStore.favoritesKey
+        let before = UserDefaults.standard.object(forKey: key) as? [String]
+
+        let store = ProviderStore(providers: sampleProviders)
+        store.toggleFavorite(sampleProviders[0])
+
+        XCTAssertEqual(UserDefaults.standard.object(forKey: key) as? [String], before)
     }
 }

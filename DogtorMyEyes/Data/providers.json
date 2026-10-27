@@ -4,13 +4,19 @@
     "name": "Dr. Biscuit Barkley, OD",
     "breed": "Golden Retriever",
     "specialty": "optometry",
-    "acceptedPlans": ["vsp", "eyeMed", "outOfPocket"],
+    "acceptedPlans": ["vsp", "eyeMed"],
+    "acceptsSelfPay": true,
     "rating": 4.9,
     "reviewCount": 214,
     "distanceMiles": 1.2,
     "bio": "Warm, thorough exams with a gentle paw. Biscuit specializes in everyday vision care and loves helping first-time patients feel at ease.",
     "services": ["Comprehensive eye exam", "Prescription renewal", "Dry eye consult"],
-    "nextAvailable": ["2026-10-27T14:00:00Z", "2026-10-28T09:30:00Z", "2026-10-29T16:00:00Z"],
+    "timeZone": "America/New_York",
+    "slotTemplates": [
+      { "dayOffset": 0, "hour": 14, "minute": 0 },
+      { "dayOffset": 1, "hour": 9, "minute": 30 },
+      { "dayOffset": 2, "hour": 16, "minute": 0 }
+    ],
     "avatarColor": "C4A35A"
   },
   {
@@ -18,13 +24,19 @@
     "name": "Dr. Luna Lensworth, MD",
     "breed": "Border Collie",
     "specialty": "ophthalmology",
-    "acceptedPlans": ["vsp", "davis", "spectera", "outOfPocket"],
+    "acceptedPlans": ["vsp", "davis", "spectera"],
+    "acceptsSelfPay": true,
     "rating": 4.8,
     "reviewCount": 168,
     "distanceMiles": 3.4,
     "bio": "Precision-focused retinal and cataract specialist. Luna reads charts faster than most humans and never drops a lens.",
     "services": ["Cataract evaluation", "Retinal screening", "Glaucoma monitoring"],
-    "nextAvailable": ["2026-10-28T11:00:00Z", "2026-10-30T13:00:00Z", "2026-11-01T10:00:00Z"],
+    "timeZone": "America/New_York",
+    "slotTemplates": [
+      { "dayOffset": 1, "hour": 11, "minute": 0 },
+      { "dayOffset": 3, "hour": 13, "minute": 0 },
+      { "dayOffset": 5, "hour": 10, "minute": 0 }
+    ],
     "avatarColor": "4A6FA5"
   },
   {
@@ -32,13 +44,19 @@
     "name": "Dr. Pip Pupil, OD",
     "breed": "Beagle",
     "specialty": "pediatric",
-    "acceptedPlans": ["eyeMed", "spectera", "outOfPocket"],
+    "acceptedPlans": ["eyeMed", "spectera"],
+    "acceptsSelfPay": true,
     "rating": 5.0,
     "reviewCount": 97,
     "distanceMiles": 2.1,
     "bio": "Kid-friendly vision care with stickers and snacks. Pip makes pediatric exams playful without skipping clinical rigor.",
     "services": ["Pediatric exam", "Amblyopia screening", "School vision check"],
-    "nextAvailable": ["2026-10-27T15:30:00Z", "2026-10-29T10:00:00Z", "2026-10-31T14:30:00Z"],
+    "timeZone": "America/New_York",
+    "slotTemplates": [
+      { "dayOffset": 0, "hour": 15, "minute": 30 },
+      { "dayOffset": 2, "hour": 10, "minute": 0 },
+      { "dayOffset": 4, "hour": 14, "minute": 30 }
+    ],
     "avatarColor": "D97757"
   },
   {
@@ -46,13 +64,19 @@
     "name": "Dr. Frame Fernando, OD",
     "breed": "French Bulldog",
     "specialty": "contactsAndFrames",
-    "acceptedPlans": ["vsp", "eyeMed", "davis", "outOfPocket"],
+    "acceptedPlans": ["vsp", "eyeMed", "davis"],
+    "acceptsSelfPay": true,
     "rating": 4.7,
     "reviewCount": 312,
     "distanceMiles": 0.8,
     "bio": "Style-forward fittings with a snout for fashion. Fernando stocks boutique frames and same-day contact trials.",
     "services": ["Frame fitting", "Contact lens fitting", "Blue-light lenses"],
-    "nextAvailable": ["2026-10-27T12:00:00Z", "2026-10-28T17:00:00Z", "2026-10-30T11:30:00Z"],
+    "timeZone": "America/New_York",
+    "slotTemplates": [
+      { "dayOffset": 0, "hour": 12, "minute": 0 },
+      { "dayOffset": 1, "hour": 17, "minute": 0 },
+      { "dayOffset": 3, "hour": 11, "minute": 30 }
+    ],
     "avatarColor": "6B4E71"
   },
   {
@@ -60,13 +84,19 @@
     "name": "Dr. Laser Larry, MD",
     "breed": "German Shepherd",
     "specialty": "lasikConsult",
-    "acceptedPlans": ["davis", "spectera", "outOfPocket"],
+    "acceptedPlans": ["davis", "spectera"],
+    "acceptsSelfPay": true,
     "rating": 4.6,
     "reviewCount": 143,
     "distanceMiles": 5.6,
     "bio": "Disciplined LASIK consults with clear candidacy criteria. Larry walks every patient through risks, recovery, and realistic outcomes.",
     "services": ["LASIK candidacy", "PRK consult", "Post-op follow-up"],
-    "nextAvailable": ["2026-10-29T09:00:00Z", "2026-11-02T15:00:00Z", "2026-11-04T10:30:00Z"],
+    "timeZone": "America/New_York",
+    "slotTemplates": [
+      { "dayOffset": 2, "hour": 9, "minute": 0 },
+      { "dayOffset": 6, "hour": 15, "minute": 0 },
+      { "dayOffset": 8, "hour": 10, "minute": 30 }
+    ],
     "avatarColor": "3D5A45"
   },
   {
@@ -74,13 +104,19 @@
     "name": "Dr. Mabel Macula, MD",
     "breed": "Cocker Spaniel",
     "specialty": "ophthalmology",
-    "acceptedPlans": ["vsp", "eyeMed", "outOfPocket"],
+    "acceptedPlans": ["vsp", "eyeMed"],
+    "acceptsSelfPay": true,
     "rating": 4.9,
     "reviewCount": 201,
     "distanceMiles": 4.2,
     "bio": "Macular and diabetic eye care with soft hands and soft ears. Mabel is known for clear explanations and careful follow-ups.",
     "services": ["Macular evaluation", "Diabetic retinopathy screening", "OCT imaging"],
-    "nextAvailable": ["2026-10-28T08:30:00Z", "2026-10-31T12:00:00Z", "2026-11-03T16:30:00Z"],
+    "timeZone": "America/New_York",
+    "slotTemplates": [
+      { "dayOffset": 1, "hour": 8, "minute": 30 },
+      { "dayOffset": 4, "hour": 12, "minute": 0 },
+      { "dayOffset": 7, "hour": 16, "minute": 30 }
+    ],
     "avatarColor": "B56576"
   },
   {
@@ -88,13 +124,19 @@
     "name": "Dr. Scout Sightline, OD",
     "breed": "Australian Shepherd",
     "specialty": "optometry",
-    "acceptedPlans": ["spectera", "davis", "eyeMed", "outOfPocket"],
+    "acceptedPlans": ["spectera", "davis", "eyeMed"],
+    "acceptsSelfPay": true,
     "rating": 4.5,
     "reviewCount": 88,
     "distanceMiles": 6.3,
     "bio": "High-energy sports vision specialist. Scout helps athletes track fast-moving targets and recover from eye strain.",
     "services": ["Sports vision exam", "Computer vision syndrome", "Night driving assessment"],
-    "nextAvailable": ["2026-10-30T14:00:00Z", "2026-11-01T09:00:00Z", "2026-11-05T13:30:00Z"],
+    "timeZone": "America/New_York",
+    "slotTemplates": [
+      { "dayOffset": 3, "hour": 14, "minute": 0 },
+      { "dayOffset": 5, "hour": 9, "minute": 0 },
+      { "dayOffset": 9, "hour": 13, "minute": 30 }
+    ],
     "avatarColor": "2E86AB"
   },
   {
@@ -102,13 +144,19 @@
     "name": "Dr. Nori Nearpoint, OD",
     "breed": "Shiba Inu",
     "specialty": "contactsAndFrames",
-    "acceptedPlans": ["vsp", "outOfPocket"],
+    "acceptedPlans": ["vsp"],
+    "acceptsSelfPay": true,
     "rating": 4.4,
     "reviewCount": 76,
     "distanceMiles": 2.9,
     "bio": "Minimalist frames, maximum clarity. Nori keeps appointments efficient and fittings exact.",
     "services": ["Progressive lenses", "Toric contacts", "Frame adjustments"],
-    "nextAvailable": ["2026-10-27T18:00:00Z", "2026-10-29T12:30:00Z", "2026-11-01T11:00:00Z"],
+    "timeZone": "America/New_York",
+    "slotTemplates": [
+      { "dayOffset": 0, "hour": 18, "minute": 0 },
+      { "dayOffset": 2, "hour": 12, "minute": 30 },
+      { "dayOffset": 5, "hour": 11, "minute": 0 }
+    ],
     "avatarColor": "E09F3E"
   },
   {
@@ -116,13 +164,19 @@
     "name": "Dr. Cosmo Cornea, MD",
     "breed": "Husky",
     "specialty": "ophthalmology",
-    "acceptedPlans": ["eyeMed", "davis", "spectera", "outOfPocket"],
+    "acceptedPlans": ["eyeMed", "davis", "spectera"],
+    "acceptsSelfPay": false,
     "rating": 4.8,
     "reviewCount": 155,
     "distanceMiles": 7.1,
     "bio": "Corneal specialist with icy focus and a warm bedside manner. Cosmo handles complex surface disease and transplants.",
     "services": ["Corneal consult", "Keratoconus care", "Specialty contact referral"],
-    "nextAvailable": ["2026-11-02T10:00:00Z", "2026-11-04T14:00:00Z", "2026-11-06T09:30:00Z"],
+    "timeZone": "America/New_York",
+    "slotTemplates": [
+      { "dayOffset": 6, "hour": 10, "minute": 0 },
+      { "dayOffset": 8, "hour": 14, "minute": 0 },
+      { "dayOffset": 10, "hour": 9, "minute": 30 }
+    ],
     "avatarColor": "5C6BC0"
   },
   {
@@ -130,13 +184,19 @@
     "name": "Dr. Daisy Dilate, OD",
     "breed": "Labrador Retriever",
     "specialty": "pediatric",
-    "acceptedPlans": ["vsp", "eyeMed", "davis", "spectera", "outOfPocket"],
+    "acceptedPlans": ["vsp", "eyeMed", "davis", "spectera"],
+    "acceptsSelfPay": true,
     "rating": 4.9,
     "reviewCount": 240,
     "distanceMiles": 1.7,
     "bio": "Family practice optometry with a soft spot for puppies and kids. Daisy accepts almost every major vision plan.",
     "services": ["Family eye exam", "Myopia control", "Binocular vision testing"],
-    "nextAvailable": ["2026-10-28T10:30:00Z", "2026-10-29T15:00:00Z", "2026-10-31T09:00:00Z"],
+    "timeZone": "America/New_York",
+    "slotTemplates": [
+      { "dayOffset": 1, "hour": 10, "minute": 30 },
+      { "dayOffset": 2, "hour": 15, "minute": 0 },
+      { "dayOffset": 4, "hour": 9, "minute": 0 }
+    ],
     "avatarColor": "F4A261"
   },
   {
@@ -144,13 +204,15 @@
     "name": "Dr. Rex Refract, OD",
     "breed": "Boxer",
     "specialty": "optometry",
-    "acceptedPlans": ["davis", "outOfPocket"],
+    "acceptedPlans": ["davis"],
+    "acceptsSelfPay": true,
     "rating": 4.3,
     "reviewCount": 61,
     "distanceMiles": 8.4,
     "bio": "Straightforward refraction and no-nonsense recommendations. Rex is great if you want a clear answer and a firm handshake.",
     "services": ["Refraction", "Contact overwear consult", "Red eye triage"],
-    "nextAvailable": ["2026-10-30T16:00:00Z", "2026-11-03T11:00:00Z", "2026-11-07T14:30:00Z"],
+    "timeZone": "America/New_York",
+    "slotTemplates": [],
     "avatarColor": "9B2226"
   },
   {
@@ -158,13 +220,19 @@
     "name": "Dr. Winnie Wavefront, MD",
     "breed": "Poodle",
     "specialty": "lasikConsult",
-    "acceptedPlans": ["vsp", "eyeMed", "spectera", "outOfPocket"],
+    "acceptedPlans": ["vsp", "eyeMed", "spectera"],
+    "acceptsSelfPay": true,
     "rating": 4.7,
     "reviewCount": 119,
     "distanceMiles": 3.8,
     "bio": "Elegant refractive surgery consults with detailed wavefront mapping. Winnie prioritizes candidacy honesty over hard sells.",
     "services": ["Wavefront analysis", "LASIK consult", "Enhancement evaluation"],
-    "nextAvailable": ["2026-10-31T13:00:00Z", "2026-11-02T09:30:00Z", "2026-11-05T15:00:00Z"],
+    "timeZone": "America/New_York",
+    "slotTemplates": [
+      { "dayOffset": 4, "hour": 13, "minute": 0 },
+      { "dayOffset": 6, "hour": 9, "minute": 30 },
+      { "dayOffset": 9, "hour": 15, "minute": 0 }
+    ],
     "avatarColor": "7B68EE"
   }
 ]
